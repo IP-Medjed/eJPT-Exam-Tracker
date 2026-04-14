@@ -28,6 +28,9 @@ No dependencies. No npm. No build. One file, 105KB, works offline.
 
 > *Dark mode (default) and Red/Night mode for late-night sessions*
 
+<img width="1917" height="861" alt="image" src="https://github.com/user-attachments/assets/04cab2ac-c873-4781-b8f1-833d5a64464c" />
+
+
 ---
 
 ## Features
