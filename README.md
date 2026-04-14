@@ -168,12 +168,14 @@ Nmap/ARP/Route output
 ## Credits
 
 **Built by:**
-- **[Architect Claude](https://claude.ai)** (Anthropic) — Architecture, implementation, and iterative refinement across multiple code review cycles
-- **[IP-Medjed](https://github.com/IP-Medjed)** — Concept, requirements, exam-day UX testing, feature direction, and project management
-
+- **[awcl](https://github.com/awcl)**
+- **[IP-Medjed](https://github.com/IP-Medjed)** 
+- **[Architect Claude](https://claude.ai)** (Anthropic)
+  
 **Code reviewed by:**
-- **Gemini** (Google) — Two-pass stress testing and architectural review that identified the focus-loss bug, storage quota silent failure, undo index shift, spray matrix DOM explosion, and off-screen node placement issues
-
+- **[awcl](https://github.com/awcl)**
+- **Gemini** (Google)
+  
 ---
 
 ## Version History
@@ -189,7 +191,7 @@ Nmap/ARP/Route output
 
 ## License
 
-MIT
+BSD 3-Clause
 
 ---
 
