@@ -1,4 +1,4 @@
-# eJPT Exam Tracker v4
+# eJPT Exam Tracker v4.6
 
 A zero-dependency, single-file tactical dashboard built for the [INE eJPT](https://security.ine.com/certifications/ejpt-certification/) penetration testing certification exam. Runs entirely in your browser — no install, no build step, no server. Open the HTML file and go.
 
