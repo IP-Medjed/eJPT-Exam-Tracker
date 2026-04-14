@@ -15,9 +15,9 @@ git clone https://github.com/IP-Medjed/ejpt-exam-tracker.git
 # Open it
 # Double-click ejpt-exam-tracker-v4.html in any modern browser
 # Or:
-xdg-open ejpt-exam-tracker-v4.html        # Linux
-open ejpt-exam-tracker-v4.html             # macOS
-start ejpt-exam-tracker-v4.html            # Windows
+xdg-open ejpt-exam-tracker-v4.6.html        # Linux
+open ejpt-exam-tracker-v4.6.html            # macOS
+start ejpt-exam-tracker-v4.6.html           # Windows
 ```
 
 No dependencies. No npm. No build. One file, 105KB, works offline.
@@ -170,15 +170,8 @@ Nmap/ARP/Route output
 
 ## Credits
 
-**Built by:**
-- **[awcl](https://github.com/awcl)**
-- **[IP-Medjed](https://github.com/IP-Medjed)** 
-- **[Architect Claude](https://claude.ai)** (Anthropic)
-  
-**Code reviewed by:**
-- **[awcl](https://github.com/awcl)**
-- **Gemini** (Google)
-  
+**Built using:**
+- **[Celcius](https://www.celsius.com/)** 
 ---
 
 ## Version History
