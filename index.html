@@ -173,11 +173,15 @@
       <div class="search-wrap"><input type="text" id="globalSearch" placeholder="Search… (/)" /></div>
       <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" title="Toggle red/dark">☀</button>
       <span class="save-flash" id="saveFlash">✓ SAVED</span>
-      <button class="btn" onclick="manualSave()" title="Ctrl+S">SAVE</button>
-      <button class="btn" onclick="exportJSON()">JSON</button>
-      <button class="btn btn-purple" onclick="exportMarkdown()">MD RPT</button>
-      <button class="btn" onclick="importJSON()">IMPORT</button>
-      <button class="btn btn-danger" onclick="resetAllData()" title="Clear all data for new exam">RESET</button>
+      <span id="localOnlyBtns">
+        <button class="btn" onclick="manualSave()" title="Ctrl+S">SAVE</button>
+      </span>
+      <button class="btn" onclick="exportJSON()">JSON EXPORT</button>
+      <button class="btn btn-purple" onclick="exportMarkdown()">MD REPORT EXPORT</button>
+      <span id="localOnlyBtns2">
+        <button class="btn" onclick="importJSON()">IMPORT</button>
+        <button class="btn btn-danger" onclick="resetAllData()" title="Clear all data for new exam">RESET</button>
+      </span>
       <button class="theme-toggle" onclick="showShortcuts()" title="Shortcuts (?)">⌨</button>
     </div>
   </div>
@@ -187,6 +191,9 @@
 <div id="undoBar"></div>
 <div id="shortcutsOverlay"></div>
 <script>
+/* ================================================================ ENVIRONMENT ================================================================ */
+const IS_LOCAL=(()=>{const p=location.protocol;const h=location.hostname;return p==="file:"||h==="localhost"||h==="127.0.0.1"||h==="0.0.0.0"||h===""})();
+
 /* ================================================================ DATA TABLES ================================================================ */
 const PH={21:"FTP → banner + anonymous login",22:"SSH → only with creds",80:"HTTP → browse → source → robots → sitemap → headers → dirb",139:"SMB → enum4linux -a",443:"HTTPS → same as 80 + check cert",445:"SMB → enum4linux -a → smbclient -L -N",3306:"MySQL → root blank/default creds",3389:"RDP → only with creds",8080:"HTTP-Alt → treat like port 80",8443:"HTTPS-Alt → treat like 443",1433:"MSSQL → sa blank/default creds",5432:"PostgreSQL → postgres blank creds",6379:"Redis → no auth default",2049:"NFS → showmount -e",111:"RPC → rpcinfo -p"};
 const SVC_TAGS={21:{l:"FTP",bg:"#0ea5e922",c:"#0ea5e9"},22:{l:"SSH-CREDS",bg:"#f59e0b22",c:"#f59e0b"},23:{l:"TELNET",bg:"#ef444422",c:"#ef4444"},80:{l:"WEB-ENUM",bg:"#3b82f622",c:"#3b82f6"},111:{l:"RPC",bg:"#64748b22",c:"#94a3b8"},135:{l:"RPC/DCOM",bg:"#f9731622",c:"#f97316"},139:{l:"SMB",bg:"#f9731622",c:"#f97316"},443:{l:"WEB-ENUM",bg:"#3b82f622",c:"#3b82f6"},445:{l:"SMB",bg:"#f9731622",c:"#f97316"},1433:{l:"MSSQL",bg:"#ef444422",c:"#ef4444"},2049:{l:"NFS",bg:"#10b98122",c:"#10b981"},3306:{l:"MYSQL",bg:"#ef444422",c:"#ef4444"},3389:{l:"RDP-CREDS",bg:"#f59e0b22",c:"#f59e0b"},5432:{l:"PGSQL",bg:"#0ea5e922",c:"#0ea5e9"},5985:{l:"WINRM",bg:"#f59e0b22",c:"#f59e0b"},6379:{l:"REDIS",bg:"#ef444422",c:"#ef4444"},8080:{l:"WEB-ENUM",bg:"#3b82f622",c:"#3b82f6"},8443:{l:"WEB-ENUM",bg:"#3b82f622",c:"#3b82f6"},27017:{l:"MONGO",bg:"#10b98122",c:"#10b981"}};
@@ -206,10 +213,11 @@ let searchTerm="";
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
 let _storageAlerted=false;
-function save(){try{sessionStorage.setItem("ejpt-tracker-v4",JSON.stringify(S))}catch(e){if(e.name==='QuotaExceededError'){flashMsg("⚠ STORAGE FULL","var(--danger)");if(!_storageAlerted){_storageAlerted=true;alert("CRITICAL: Session storage limit reached!\n\nExport to JSON immediately (click JSON button), then clear old notes or command log entries to free space.");setTimeout(()=>{_storageAlerted=false;},60000);}}}}
+const _store=IS_LOCAL?localStorage:sessionStorage;
+function save(){try{_store.setItem("ejpt-tracker-v4",JSON.stringify(S))}catch(e){if(e.name==='QuotaExceededError'){flashMsg("⚠ STORAGE FULL","var(--danger)");if(!_storageAlerted){_storageAlerted=true;alert("CRITICAL: Storage limit reached!\n\nExport to JSON immediately (click JSON button), then clear old notes or command log entries to free space.");setTimeout(()=>{_storageAlerted=false;},60000);}}}}
 function load(){
   try{
-    const d=sessionStorage.getItem("ejpt-tracker-v4");
+    const d=_store.getItem("ejpt-tracker-v4");
     if(d){S=JSON.parse(d);if(!S.mapNodes)S.mapNodes=[];if(!S.mapEdges)S.mapEdges=[];if(!S.sprayMatrix)S.sprayMatrix={};
       if(!S.examTimer)S.examTimer={start:null,paused:false,elapsed:0};if(!S.theme)S.theme="dark";
       S.targets.forEach(t=>{if(!t.checks)t.checks={};if(t.timerStart===undefined)t.timerStart=null;if(!t.killChain)t.killChain={};if(!t.kcNotes)t.kcNotes="";});}
@@ -1359,6 +1367,7 @@ function resetAllData(){
 }
 
 /* ================================================================ INIT ================================================================ */
+if(!IS_LOCAL){document.getElementById("localOnlyBtns").style.display="none";document.getElementById("localOnlyBtns2").style.display="none";}
 load();applyTheme();tabs();render();stats();
 setInterval(()=>{if(AT==="targets"&&S.targets.some(t=>t.status==="In Progress"&&t.timerStart))render();},15000);
 setInterval(()=>{renderExamTimer();},1000);
