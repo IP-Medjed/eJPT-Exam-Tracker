@@ -206,10 +206,10 @@ let searchTerm="";
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
 let _storageAlerted=false;
-function save(){try{localStorage.setItem("ejpt-tracker-v4",JSON.stringify(S))}catch(e){if(e.name==='QuotaExceededError'){flashMsg("⚠ STORAGE FULL","var(--danger)");if(!_storageAlerted){_storageAlerted=true;alert("CRITICAL: Storage limit reached!\n\nExport to JSON immediately (click JSON button), then clear old notes or command log entries to free space.");setTimeout(()=>{_storageAlerted=false;},60000);}}}}
+function save(){try{sessionStorage.setItem("ejpt-tracker-v4",JSON.stringify(S))}catch(e){if(e.name==='QuotaExceededError'){flashMsg("⚠ STORAGE FULL","var(--danger)");if(!_storageAlerted){_storageAlerted=true;alert("CRITICAL: Session storage limit reached!\n\nExport to JSON immediately (click JSON button), then clear old notes or command log entries to free space.");setTimeout(()=>{_storageAlerted=false;},60000);}}}}
 function load(){
   try{
-    const d=localStorage.getItem("ejpt-tracker-v4")||localStorage.getItem("ejpt-tracker");
+    const d=sessionStorage.getItem("ejpt-tracker-v4");
     if(d){S=JSON.parse(d);if(!S.mapNodes)S.mapNodes=[];if(!S.mapEdges)S.mapEdges=[];if(!S.sprayMatrix)S.sprayMatrix={};
       if(!S.examTimer)S.examTimer={start:null,paused:false,elapsed:0};if(!S.theme)S.theme="dark";
       S.targets.forEach(t=>{if(!t.checks)t.checks={};if(t.timerStart===undefined)t.timerStart=null;if(!t.killChain)t.killChain={};if(!t.kcNotes)t.kcNotes="";});}
