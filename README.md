@@ -1,6 +1,6 @@
 # eJPT Exam Tracker v4.6.1
 
-A zero-dependency, single-file tactical dashboard built for the [INE eJPT](https://security.ine.com/certifications/ejpt-certification/) penetration testing certification exam. Runs entirely in your browser — no install, no build step, no server. Open the HTML file and go.
+A zero-dependency, single-file tactical dashboard built for the [INE eJPT](https://security.ine.com/certifications/ejpt-certification/) penetration testing certification exam. Runs entirely in your browser — no install, no build step, no server. Open the HTML file and go. Or access hosted version via [Pages]()
 
 Built for speed under pressure. Every feature exists to reduce cognitive load and eliminate mechanical overhead during a timed 48-hour exam.
 
@@ -13,11 +13,11 @@ Built for speed under pressure. Every feature exists to reduce cognitive load an
 git clone https://github.com/IP-Medjed/ejpt-exam-tracker.git
 
 # Open it
-# Double-click ejpt-exam-tracker-v4.html in any modern browser
+# Double-click index.html in any modern browser
 # Or:
-xdg-open ejpt-exam-tracker-v4.6.html        # Linux
-open ejpt-exam-tracker-v4.6.html            # macOS
-start ejpt-exam-tracker-v4.6.html           # Windows
+xdg-open index.html        # Linux
+open index.html            # macOS
+start index.html           # Windows
 ```
 
 No dependencies. No npm. No build. One file, 105KB, works offline.
